@@ -1463,7 +1463,8 @@ body {
 
 .set-inputs-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, …) lets the columns shrink below the number boxes' natural width */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 16px;
 }
@@ -1472,6 +1473,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .input-stepper-card label {
@@ -1490,7 +1492,8 @@ body {
 }
 
 .stepper-controls input {
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -1519,9 +1522,12 @@ body {
   font-size: 12px;
   font-weight: 700;
   padding: 10px 10px;
+  min-width: 48px;
+  min-height: 48px;
   cursor: pointer;
   transition: all var(--transition-fast);
   user-select: none;
+  touch-action: manipulation; /* fast taps adjust the number instead of zooming */
 }
 
 .stepper-btn:hover {
@@ -2290,6 +2296,29 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* A toast with a button (Undo) has to accept taps */
+.toast.has-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 4px 4px 4px 20px;
+  pointer-events: auto;
+}
+
+.toast-action {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--accent-light);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .header-inner {
@@ -2325,6 +2354,11 @@ body {
   }
 
   .routines-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Phones: weight and reps each get a full row */
+  .set-inputs-row {
     grid-template-columns: 1fr;
   }
 

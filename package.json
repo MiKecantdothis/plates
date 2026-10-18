@@ -1,0 +1,11 @@
+{
+  "name": "plates",
+  "private": true,
+  "description": "Plates needs no build step. This file only sets up the browser tests.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

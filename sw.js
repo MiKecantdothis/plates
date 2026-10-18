@@ -1,20 +1,29 @@
-// Plates Service Worker — offline support with network-first strategy
-const CACHE_NAME = 'plates-v12';
-const ASSETS = [
+// Plates Service Worker — offline support
+// VERSION should match the ?v= numbers in index.html. If they ever drift
+// apart, offline still works: lookups fall back to ignoring the ?v= part.
+const VERSION = 13;
+const CACHE_NAME = `plates-v${VERSION}`;
+const NETWORK_TIMEOUT_MS = 3000;
+
+// The exact addresses the page asks for, ?v= included, so offline loads find them.
+const APP_FILES = [
   './',
   './index.html',
-  './index.css',
-  './app.js',
+  `./index.css?v=${VERSION}`,
+  `./app.js?v=${VERSION}`,
   './icon-512.jpg',
   './manifest.json',
-  'https://cdn.jsdelivr.net/npm/chart.js',
 ];
+// Nice to have offline, but a slow or blocked CDN must not stop the install.
+const OPTIONAL_FILES = ['https://cdn.jsdelivr.net/npm/chart.js'];
 
-// Install: pre-cache all assets and activate immediately
+// Install: save the app's files, then the optional ones, and activate at once
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(APP_FILES);
+    await Promise.all(OPTIONAL_FILES.map((url) => cache.add(url).catch(() => {})));
+  })());
   self.skipWaiting();
 });
 
@@ -27,21 +36,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: network-first strategy (always delivers latest updates, falls back to offline cache)
+// Fetch: network first, so updates arrive straight away. If the network fails,
+// or takes longer than NETWORK_TIMEOUT_MS (weak gym signal), use the saved copy.
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
-  );
+  let saving = Promise.resolve();
+  const network = fetch(request).then((response) => {
+    if (response && response.status === 200 && response.type === 'basic') {
+      const copy = response.clone();
+      saving = caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+    }
+    return response;
+  });
+  // Let the cache update finish even if the saved copy answered first.
+  event.waitUntil(network.then(() => saving, () => {}));
+
+  event.respondWith((async () => {
+    const timeout = new Promise((resolve) => setTimeout(resolve, NETWORK_TIMEOUT_MS));
+    const fresh = await Promise.race([network.catch(() => null), timeout]);
+    if (fresh) return fresh;
+    const saved = await caches.match(request, { ignoreSearch: true });
+    return saved || network; // nothing saved: keep waiting for the network
+  })());
 });

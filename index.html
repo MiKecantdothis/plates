@@ -76,19 +76,20 @@
 
   <!-- ───── Navigation Tabs ───── -->
   <nav id="main-nav">
-    <button class="nav-btn active" data-tab="workouts">
+    <button class="nav-btn active" data-tab="workouts" id="nav-btn-workouts">
       <span class="nav-icon">💪</span>
-      <span class="nav-label">Workouts</span>
+      <span class="nav-label">Routines</span>
     </button>
-    <button class="nav-btn" data-tab="timer">
-      <span class="nav-icon">⏱️</span>
-      <span class="nav-label">Rest Timer</span>
+    <button class="nav-btn" data-tab="active" id="nav-btn-active">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Live Session</span>
+      <span class="active-dot" id="active-indicator" hidden></span>
     </button>
-    <button class="nav-btn" data-tab="history">
+    <button class="nav-btn" data-tab="history" id="nav-btn-history">
       <span class="nav-icon">📊</span>
       <span class="nav-label">History</span>
     </button>
-    <button class="nav-btn" data-tab="shopping">
+    <button class="nav-btn" data-tab="shopping" id="nav-btn-shopping">
       <span class="nav-icon">🛒</span>
       <span class="nav-label">Shopping</span>
     </button>
@@ -97,36 +98,155 @@
   <!-- ───── Main Content ───── -->
   <main id="app-main">
 
-    <!-- ── WORKOUTS TAB ── -->
+    <!-- ── WORKOUTS / ROUTINES TAB ── -->
     <section id="tab-workouts" class="tab-panel active">
+      <!-- Active session resume banner (visible only when session is running) -->
+      <div id="session-banner" class="session-banner" hidden>
+        <div class="session-banner-content">
+          <span class="session-banner-pulse"></span>
+          <div>
+            <div class="session-banner-title" id="banner-routine-name">Workout in Progress</div>
+            <div class="session-banner-subtitle" id="banner-elapsed">⏱️ 00:00 elapsed</div>
+          </div>
+        </div>
+        <button id="btn-resume-session" class="btn-primary btn-small">Resume ▶</button>
+      </div>
+
       <div class="section-header">
-        <h1>My Routines</h1>
+        <div>
+          <h1>Choose Routine</h1>
+          <p class="subtitle" style="margin-bottom:0">Select a routine below to launch your guided workout session.</p>
+        </div>
         <button id="btn-add-routine" class="btn-primary">+ Add Routine</button>
       </div>
-      <p class="subtitle">Track up to 12 workout routines. Tap a routine to log sets.</p>
-      <div id="routines-grid" class="routines-grid">
+
+      <div id="routines-grid" class="routines-grid" style="margin-top: 18px">
         <!-- cards injected by JS -->
       </div>
     </section>
 
-    <!-- ── REST TIMER TAB ── -->
-    <section id="tab-timer" class="tab-panel">
-      <div class="timer-container">
-        <h1>Rest Timer</h1>
-        <p class="subtitle" id="rest-recommendation">Select a goal to see recommended rest.</p>
-        <div class="timer-display">
-          <svg class="timer-ring" viewBox="0 0 200 200">
-            <circle class="ring-bg" cx="100" cy="100" r="90" />
-            <circle class="ring-progress" cx="100" cy="100" r="90" id="timer-ring-progress" />
-          </svg>
-          <div class="timer-digits" id="timer-digits">0:00</div>
+    <!-- ── ACTIVE GUIDED WORKOUT TAB ── -->
+    <section id="tab-active" class="tab-panel">
+      <!-- When no workout is running -->
+      <div id="active-empty-state" class="empty-state">
+        <svg class="empty-state-plate" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="16.5" stroke="currentColor" stroke-width="2.2" class="plate-outer"/>
+          <circle cx="18" cy="18" r="14" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.45"/>
+          <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+          <circle cx="18" cy="18" r="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.6" class="plate-hub"/>
+          <circle cx="18" cy="18" r="3.2" fill="var(--bg-base)" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="18" cy="13.2" r="0.9" fill="currentColor" opacity="0.8"/>
+          <circle cx="18" cy="22.8" r="0.9" fill="currentColor" opacity="0.8"/>
+          <circle cx="13.2" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+          <circle cx="22.8" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+        </svg>
+        <p class="empty-state-text">No active workout session.<br>Choose a routine to start your guided workout!</p>
+        <button id="btn-goto-routines" class="btn-primary" style="margin-top: 18px">Browse Routines ▶</button>
+      </div>
+
+      <!-- Live Guided Workout View -->
+      <div id="active-workout-view" class="active-workout-view" hidden>
+        <!-- Session Top Status Bar -->
+        <div class="active-top-bar">
+          <div class="active-routine-info">
+            <span class="active-badge" id="active-routine-badge">Workout</span>
+            <span class="active-timer-display" id="active-elapsed-timer">⏱️ 00:00</span>
+          </div>
+          <div class="active-header-actions">
+            <button id="btn-finish-workout" class="btn-primary btn-small">Finish Workout 🏆</button>
+            <button id="btn-cancel-workout" class="btn-danger btn-small" title="Discard Workout">Cancel</button>
+          </div>
         </div>
-        <div class="timer-presets" id="timer-presets">
-          <!-- preset buttons injected by JS -->
+
+        <!-- Exercise Stepper Pills -->
+        <div class="stepper-scroll-container">
+          <div id="exercise-stepper" class="exercise-stepper">
+            <!-- step pills injected by JS -->
+          </div>
         </div>
-        <div class="timer-controls">
-          <button id="btn-timer-start" class="btn-primary">Start</button>
-          <button id="btn-timer-reset" class="btn-secondary">Reset</button>
+
+        <!-- Current Exercise Stage Card -->
+        <div class="active-exercise-card">
+          <div class="active-exercise-header">
+            <div>
+              <div class="active-exercise-step-label" id="active-step-label">Exercise 1 of 4</div>
+              <h2 class="active-exercise-title" id="active-exercise-name">Barbell Bench Press</h2>
+            </div>
+            <div class="active-set-badge" id="active-set-counter">Set 1 of 3</div>
+          </div>
+
+          <!-- Set Progress Indicator Dots -->
+          <div class="set-indicator-dots" id="set-indicator-dots">
+            <!-- dots injected by JS -->
+          </div>
+
+          <!-- Rest Countdown Banner (Contextual between sets) -->
+          <div id="active-rest-panel" class="active-rest-panel" hidden>
+            <div class="rest-panel-header">
+              <span class="rest-pulse-icon">⏱️</span>
+              <span class="rest-panel-title">REST PERIOD</span>
+              <span class="rest-goal-pill" id="rest-goal-label">Hypertrophy (90s)</span>
+            </div>
+            <div class="rest-timer-box">
+              <div class="rest-timer-digits" id="rest-digits">01:30</div>
+              <div class="rest-next-hint" id="rest-next-hint">Up Next: Set 2 of Barbell Bench Press</div>
+            </div>
+            <div class="rest-controls-row">
+              <button id="btn-rest-minus" class="btn-secondary btn-small">-15s</button>
+              <button id="btn-rest-plus" class="btn-secondary btn-small">+30s</button>
+              <button id="btn-rest-skip" class="btn-primary btn-small">Skip Rest & Lift ▶</button>
+            </div>
+          </div>
+
+          <!-- Direct Set Logger Form -->
+          <div class="set-logger-box" id="set-logger-box">
+            <div class="set-logger-label">LOG CURRENT SET:</div>
+            <div class="set-inputs-row">
+              <!-- Weight input with steppers -->
+              <div class="input-stepper-card">
+                <label for="set-weight-input">Weight (lbs)</label>
+                <div class="stepper-controls">
+                  <button type="button" class="stepper-btn" id="btn-weight-minus">-5</button>
+                  <input type="number" id="set-weight-input" placeholder="0" min="0" step="2.5" />
+                  <button type="button" class="stepper-btn" id="btn-weight-plus">+5</button>
+                  <button type="button" class="stepper-btn stepper-btn-lg" id="btn-weight-plus10">+10</button>
+                </div>
+              </div>
+
+              <!-- Reps input with steppers -->
+              <div class="input-stepper-card">
+                <label for="set-reps-input">Reps</label>
+                <div class="stepper-controls">
+                  <button type="button" class="stepper-btn" id="btn-reps-minus">-1</button>
+                  <input type="number" id="set-reps-input" placeholder="0" min="1" max="100" />
+                  <button type="button" class="stepper-btn" id="btn-reps-plus">+1</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Big satisfying complete set button -->
+            <button id="btn-complete-set" class="btn-primary btn-complete-set">
+              <span class="btn-complete-icon">✓</span>
+              <span>Complete Set & Rest</span>
+            </button>
+          </div>
+
+          <!-- Today's Logged Sets for this exercise -->
+          <div class="current-exercise-sets">
+            <div class="sets-table-title">Sets Logged This Session:</div>
+            <div id="exercise-sets-list" class="exercise-sets-list">
+              <!-- rows injected by JS -->
+            </div>
+          </div>
+
+          <!-- Exercise Navigation Controls -->
+          <div class="exercise-nav-footer">
+            <button id="btn-add-extra-set" class="btn-secondary btn-small">+ Extra Set</button>
+            <div style="display: flex; gap: 8px">
+              <button id="btn-prev-exercise" class="btn-secondary btn-small">◀ Prev Exercise</button>
+              <button id="btn-next-exercise" class="btn-secondary btn-small">Next Exercise ▶</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -187,16 +307,34 @@
     </div>
   </div>
 
-  <!-- ───── Modal: Log Workout ───── -->
-  <div id="modal-log" class="modal-overlay" hidden>
-    <div class="modal">
-      <h2 id="modal-log-title">Log Workout</h2>
-      <div id="log-exercises" class="log-exercises">
-        <!-- log rows injected by JS -->
+  <!-- ───── Modal: Workout Completed Celebration ───── -->
+  <div id="modal-workout-complete" class="modal-overlay" hidden>
+    <div class="modal modal-celebration">
+      <div class="celebration-badge">🏆</div>
+      <h2>Workout Complete!</h2>
+      <p class="subtitle" id="complete-routine-name" style="margin-bottom: 18px">Great session crushed.</p>
+      
+      <div class="stats-summary-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="complete-duration">0m</div>
+          <div class="stat-label">Duration</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="complete-volume">0 lbs</div>
+          <div class="stat-label">Volume Lifted</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="complete-sets">0</div>
+          <div class="stat-label">Sets Logged</div>
+        </div>
       </div>
-      <div class="modal-actions">
-        <button id="btn-save-log" class="btn-primary">Save Log</button>
-        <button id="btn-cancel-log" class="btn-secondary">Cancel</button>
+
+      <div class="completed-summary-list" id="complete-exercises-summary">
+        <!-- summary items injected by JS -->
+      </div>
+
+      <div class="modal-actions" style="justify-content: center; margin-top: 24px">
+        <button id="btn-close-complete" class="btn-primary" style="width: 100%">Save & View History 📊</button>
       </div>
     </div>
   </div>

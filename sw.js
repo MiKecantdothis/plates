@@ -1,5 +1,5 @@
 // Plates Service Worker — offline support
-const CACHE_NAME = 'plates-v2';
+const CACHE_NAME = 'plates-v3';
 const ASSETS = [
   './',
   './index.html',

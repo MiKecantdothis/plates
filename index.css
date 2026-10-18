@@ -46,9 +46,9 @@
   --modal-bg:        #0b0f17;
   --modal-backdrop:  rgba(0, 0, 0, 0.8);
 
-  /* Fonts & Geometry */
-  --font-display:    'Outfit', system-ui, -apple-system, sans-serif;
-  --font-sans:       'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  /* Fonts & Geometry — Apple iPhone San Francisco (SF Pro) */
+  --font-display:    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', 'SF Pro Text', -apple-system-body, 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  --font-sans:       -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'SF Pro', -apple-system-body, 'Helvetica Neue', Helvetica, system-ui, sans-serif;
 
   --radius-sm:       8px;
   --radius-md:       14px;
@@ -126,6 +126,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   transition: background-color var(--transition-base), color var(--transition-base);
 }
 

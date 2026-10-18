@@ -1,0 +1,18 @@
+{
+  "name": "Plates",
+  "short_name": "Plates",
+  "description": "Track workouts, rest periods, and shopping lists — your gym companion.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0c0e14",
+  "theme_color": "#6c5ce7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

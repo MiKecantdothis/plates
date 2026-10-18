@@ -328,7 +328,7 @@ body {
 .nav-btn.active {
   color: var(--accent-light);
   border-bottom-color: var(--accent);
-  background: var(--bg-surface);
+  background: transparent;
 }
 
 .nav-icon { font-size: 17px; }
@@ -385,7 +385,6 @@ body {
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.4px;
-  border: none;
   border-radius: var(--radius-sm);
   padding: 10px 20px;
   cursor: pointer;
@@ -396,17 +395,21 @@ body {
   transition: all var(--transition-fast);
 }
 
+/* Minimal Blue: border + text, no heavy solid fill */
 .btn-primary {
-  background: var(--accent-gradient);
-  color: #ffffff;
+  background: transparent;
+  color: var(--accent-light);
+  border: 1.5px solid var(--accent);
   font-weight: 700;
-  box-shadow: 0 4px 14px var(--accent-glow);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.12);
 }
 
 .btn-primary:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--accent-light);
+  color: #ffffff;
+  box-shadow: 0 0 16px var(--accent-glow);
   transform: translateY(-1px);
-  filter: brightness(1.08);
-  box-shadow: 0 6px 20px var(--accent-glow);
 }
 
 .btn-primary:active {
@@ -414,15 +417,15 @@ body {
 }
 
 .btn-secondary {
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-accent);
+  background: transparent;
+  color: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .btn-danger {
@@ -704,8 +707,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: var(--accent-light);
-  background: var(--accent-subtle);
-  border: 1px solid var(--border-accent);
+  background: transparent;
+  border: 1px solid var(--accent);
   padding: 4px 10px;
   border-radius: var(--radius-full);
 }
@@ -744,7 +747,7 @@ body {
   gap: 6px;
   padding: 8px 14px;
   border-radius: var(--radius-full);
-  background: var(--bg-surface);
+  background: transparent;
   border: 1px solid var(--border);
   font-family: var(--font-display);
   font-size: 12px;
@@ -756,19 +759,20 @@ body {
 }
 
 .stepper-pill:hover {
-  border-color: var(--border-accent);
-  color: var(--text-primary);
+  border-color: var(--accent);
+  color: var(--accent-light);
 }
 
+/* Clicked / Active toggle: Blue border and blue text, no solid fill */
 .stepper-pill.active {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
+  border: 1.5px solid var(--accent);
+  background: transparent;
   color: var(--accent-light);
-  box-shadow: 0 0 14px var(--accent-glow);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 .stepper-pill.completed {
-  border-color: rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
   color: var(--green);
 }
 
@@ -827,8 +831,8 @@ body {
   font-size: 12px;
   font-weight: 800;
   color: var(--accent-light);
-  background: var(--accent-subtle);
-  border: 1px solid var(--border-accent);
+  background: transparent;
+  border: 1px solid var(--accent);
   padding: 6px 14px;
   border-radius: var(--radius-full);
   letter-spacing: 0.4px;
@@ -850,23 +854,24 @@ body {
 }
 
 .set-dot.active {
-  background: var(--accent-gradient);
-  box-shadow: 0 0 10px var(--accent-glow);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .set-dot.completed {
-  background: var(--green);
+  background: var(--accent);
 }
 
 /* ── Contextual Rest Panel (Between Sets) ── */
 .active-rest-panel {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-accent);
+  background: var(--bg-surface);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-md);
   padding: 18px 20px;
   margin-bottom: 22px;
   text-align: center;
-  box-shadow: 0 8px 30px var(--accent-glow);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
   animation: restSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -894,8 +899,9 @@ body {
 .rest-goal-pill {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-muted);
-  background: var(--bg-surface);
+  color: var(--accent-light);
+  background: transparent;
+  border: 1px solid var(--border-accent);
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
@@ -996,7 +1002,7 @@ body {
 }
 
 .stepper-btn {
-  background: var(--bg-surface);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
@@ -1010,13 +1016,15 @@ body {
 }
 
 .stepper-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-accent);
+  background: transparent;
+  color: var(--accent-light);
+  border-color: var(--accent);
 }
 
 .stepper-btn:active {
   transform: scale(0.95);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .stepper-btn-lg {
@@ -1035,7 +1043,17 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 6px 20px var(--accent-glow);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  color: var(--accent-light);
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.15);
+}
+
+.btn-complete-set:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--accent-light);
+  color: #ffffff;
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 .btn-complete-icon {
@@ -1372,13 +1390,13 @@ body {
 }
 
 .shopping-checkbox.checked {
-  background: var(--accent);
+  background: transparent;
   border-color: var(--accent);
 }
 
 .shopping-checkbox.checked::after {
   content: '✓';
-  color: #ffffff;
+  color: var(--accent-light);
   font-size: 13px;
   font-weight: 800;
 }

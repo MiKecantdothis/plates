@@ -290,7 +290,7 @@
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('plates_theme', theme);
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'light' ? '#f5f7fb' : '#090b0e');
+      metaThemeColor.setAttribute('content', theme === 'light' ? '#f0f4f9' : '#05070a');
     }
   }
 

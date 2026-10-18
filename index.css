@@ -1,25 +1,25 @@
 /* ============================================
-   Plates — Luxury Athletic Design System
+   Plates — Deep Black & Blue Luxury Design System
    ============================================ */
 
 /* ── Theme Variables ── */
 :root {
   --theme:           dark;
   
-  /* Background layers (Deep obsidian & charcoal) */
-  --bg-base:         #090b0e;
-  --bg-surface:      #11141c;
-  --bg-elevated:     #181c26;
-  --bg-hover:        #212634;
-  --bg-active:       #2a3042;
+  /* Background layers (Ultra-deep obsidian black) */
+  --bg-base:         #05070a;
+  --bg-surface:      #0b0f17;
+  --bg-elevated:     #111723;
+  --bg-hover:        #192234;
+  --bg-active:       #212c44;
 
-  /* Classy metallic & bronze/gold accents */
-  --accent:          #c5a059;
-  --accent-light:    #dfc17b;
-  --accent-dark:     #9a7837;
-  --accent-glow:     rgba(197, 160, 89, 0.28);
-  --accent-gradient: linear-gradient(135deg, #d4af37 0%, #aa8232 100%);
-  --accent-subtle:   rgba(197, 160, 89, 0.1);
+  /* Electric Cobalt & Cyan-Blue accents */
+  --accent:          #3b82f6;
+  --accent-light:    #60a5fa;
+  --accent-dark:     #1d4ed8;
+  --accent-glow:     rgba(59, 130, 246, 0.32);
+  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 55%, #1d4ed8 100%);
+  --accent-subtle:   rgba(59, 130, 246, 0.12);
 
   /* Status & Functional colors */
   --green:           #10b981;
@@ -36,15 +36,15 @@
   /* Borders & Glassmorphism */
   --border:          rgba(255, 255, 255, 0.08);
   --border-subtle:   rgba(255, 255, 255, 0.04);
-  --border-accent:   rgba(197, 160, 89, 0.35);
+  --border-accent:   rgba(59, 130, 246, 0.38);
 
   /* Shadows */
-  --shadow-sm:       0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-card:     0 8px 30px rgba(0, 0, 0, 0.45);
+  --shadow-sm:       0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card:     0 8px 32px rgba(0, 0, 0, 0.65);
   --shadow-glow:     0 0 24px var(--accent-glow);
-  --header-bg:       rgba(9, 11, 14, 0.82);
-  --modal-bg:        #12151e;
-  --modal-backdrop:  rgba(0, 0, 0, 0.75);
+  --header-bg:       rgba(5, 7, 10, 0.85);
+  --modal-bg:        #0b0f17;
+  --modal-backdrop:  rgba(0, 0, 0, 0.8);
 
   /* Fonts & Geometry */
   --font-display:    'Outfit', system-ui, -apple-system, sans-serif;
@@ -62,20 +62,20 @@
 [data-theme="light"] {
   --theme:           light;
 
-  /* Background layers (Refined alabaster & porcelain) */
-  --bg-base:         #f5f7fb;
+  /* Background layers (Icy porcelain white & soft blue-grey) */
+  --bg-base:         #f0f4f9;
   --bg-surface:      #ffffff;
-  --bg-elevated:     #edf1f7;
-  --bg-hover:        #e2e7f0;
-  --bg-active:       #cbd5e1;
+  --bg-elevated:     #e4ecf7;
+  --bg-hover:        #d6e3f3;
+  --bg-active:       #c4d5ed;
 
-  /* Rich high-contrast metallic bronze */
-  --accent:          #9e772d;
-  --accent-light:    #b88e3c;
-  --accent-dark:     #7c5c1e;
-  --accent-glow:     rgba(158, 119, 45, 0.2);
-  --accent-gradient: linear-gradient(135deg, #b88e3c 0%, #8c6620 100%);
-  --accent-subtle:   rgba(158, 119, 45, 0.08);
+  /* Rich Royal Navy & Electric Blue */
+  --accent:          #2563eb;
+  --accent-light:    #1d4ed8;
+  --accent-dark:     #1e40af;
+  --accent-glow:     rgba(37, 99, 235, 0.22);
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  --accent-subtle:   rgba(37, 99, 235, 0.08);
 
   /* Status colors */
   --green:           #059669;
@@ -92,13 +92,13 @@
   /* Borders & Glassmorphism */
   --border:          rgba(15, 23, 42, 0.08);
   --border-subtle:   rgba(15, 23, 42, 0.04);
-  --border-accent:   rgba(158, 119, 45, 0.35);
+  --border-accent:   rgba(37, 99, 235, 0.32);
 
   /* Shadows */
   --shadow-sm:       0 2px 6px rgba(15, 23, 42, 0.04);
   --shadow-card:     0 8px 24px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
   --shadow-glow:     0 0 20px var(--accent-glow);
-  --header-bg:       rgba(245, 247, 251, 0.88);
+  --header-bg:       rgba(240, 244, 249, 0.88);
   --modal-bg:        #ffffff;
   --modal-backdrop:  rgba(15, 23, 42, 0.45);
 }
@@ -398,7 +398,7 @@ body {
 
 .btn-primary {
   background: var(--accent-gradient);
-  color: #0b0d12;
+  color: #ffffff;
   font-weight: 700;
   box-shadow: 0 4px 14px var(--accent-glow);
 }
@@ -1378,7 +1378,7 @@ body {
 
 .shopping-checkbox.checked::after {
   content: '✓';
-  color: #0b0d12;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 800;
 }

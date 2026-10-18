@@ -316,6 +316,10 @@
       <p class="subtitle">Keep track of supplements, meals & groceries.</p>
       <div class="shopping-input-row">
         <input type="text" id="shopping-input" placeholder="Add an item…" />
+        <div class="shopping-price-wrapper">
+          <span class="currency-symbol">₹</span>
+          <input type="number" id="shopping-price" placeholder="Price" min="0" step="1" />
+        </div>
         <select id="shopping-category">
           <option value="protein">Protein</option>
           <option value="supplements">Supplements</option>
@@ -326,6 +330,23 @@
         </select>
         <button id="btn-add-shopping" class="btn-primary">Add</button>
       </div>
+
+      <!-- Budget & Expense Summary Bar -->
+      <div id="shopping-budget-bar" class="shopping-budget-bar">
+        <div class="shopping-budget-card">
+          <span class="budget-card-label">Estimated Total</span>
+          <span class="budget-card-value" id="shopping-total-spend">₹0</span>
+        </div>
+        <div class="shopping-budget-card">
+          <span class="budget-card-label">In Cart (Done)</span>
+          <span class="budget-card-value budget-in-cart" id="shopping-cart-spend">₹0</span>
+        </div>
+        <div class="shopping-budget-card">
+          <span class="budget-card-label">Remaining</span>
+          <span class="budget-card-value budget-remaining" id="shopping-remaining-spend">₹0</span>
+        </div>
+      </div>
+
       <div id="shopping-list" class="shopping-list">
         <!-- items injected by JS -->
       </div>

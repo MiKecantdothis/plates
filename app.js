@@ -84,11 +84,37 @@
   const metaThemeColor     = $('#meta-theme-color');
 
   // Navigation
-  const navBtnWorkouts     = $('#nav-btn-workouts');
-  const navBtnActive       = $('#nav-btn-active');
-  const navBtnHistory      = $('#nav-btn-history');
-  const navBtnShopping     = $('#nav-btn-shopping');
-  const activeIndicator    = $('#active-indicator');
+  const navBtnDashboard       = $('#nav-btn-dashboard');
+  const navBtnWorkouts        = $('#nav-btn-workouts');
+  const navBtnActive          = $('#nav-btn-active');
+  const navBtnHistory         = $('#nav-btn-history');
+  const navBtnShopping        = $('#nav-btn-shopping');
+  const activeIndicator       = $('#active-indicator');
+
+  // Dashboard Tab
+  const dashboardGreeting     = $('#dashboard-greeting');
+  const dashboardSubtitle     = $('#dashboard-subtitle');
+  const btnDashboardStart     = $('#btn-dashboard-start');
+  const dashboardSessionBanner= $('#dashboard-session-banner');
+  const dashBannerTitle       = $('#dash-banner-title');
+  const dashBannerElapsedText = $('#dash-banner-elapsed-text');
+  const btnDashResume         = $('#btn-dash-resume');
+  const weeklyCompletionText  = $('#weekly-completion-text');
+  const dashboardStreakText   = $('#dashboard-streak-text');
+  const weeklyDaysRow         = $('#weekly-days-row');
+  const kpiTotalVolume        = $('#kpi-total-volume');
+  const kpiVolumeWeek         = $('#kpi-volume-week');
+  const kpiTotalWorkouts      = $('#kpi-total-workouts');
+  const kpiWorkoutsMonth      = $('#kpi-workouts-month');
+  const kpiTotalTime          = $('#kpi-total-time');
+  const kpiAvgDuration        = $('#kpi-avg-duration');
+  const kpiPrCount            = $('#kpi-pr-count');
+  const kpiPrSubtext          = $('#kpi-pr-subtext');
+  const chartVolumeAvg        = $('#chart-volume-avg');
+  const volumeChartContainer  = $('#volume-chart-container');
+  const prRecordsList         = $('#pr-records-list');
+  const btnGotoHistoryTab     = $('#btn-goto-history-tab');
+  const recentSessionsList    = $('#recent-sessions-list');
 
   // Routines Tab
   const routinesGrid       = $('#routines-grid');
@@ -261,6 +287,9 @@
     if (tabName === 'active') {
       renderActiveWorkoutView();
     }
+    if (tabName === 'dashboard') {
+      renderDashboard();
+    }
   }
 
   $$('.nav-btn').forEach(btn => {
@@ -279,20 +308,54 @@
   if (sessionBanner) {
     sessionBanner.addEventListener('click', () => switchTab('active'));
   }
+  if (btnDashboardStart) {
+    btnDashboardStart.addEventListener('click', () => {
+      if (activeSession && activeSession.exercises && activeSession.exercises.length) {
+        switchTab('active');
+      } else {
+        switchTab('workouts');
+      }
+    });
+  }
+  if (btnDashResume) {
+    btnDashResume.addEventListener('click', (e) => {
+      e.stopPropagation();
+      switchTab('active');
+    });
+  }
+  if (dashboardSessionBanner) {
+    dashboardSessionBanner.addEventListener('click', () => switchTab('active'));
+  }
+  if (btnGotoHistoryTab) {
+    btnGotoHistoryTab.addEventListener('click', () => switchTab('history'));
+  }
 
   function updateBannerVisibility() {
     const isLive = !!(activeSession && activeSession.exercises && activeSession.exercises.length > 0);
+    const elapsedStr = isLive ? fmtTime(activeSession.elapsedSeconds) : '00:00';
+
     if (sessionBanner) {
       sessionBanner.hidden = !isLive;
       sessionBanner.style.display = isLive ? 'flex' : 'none';
       if (isLive) {
         bannerRoutineName.textContent = `Active: ${activeSession.routineName}`;
         if (bannerElapsedText) {
-          bannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+          bannerElapsedText.textContent = `${elapsedStr} elapsed`;
         } else {
-          bannerElapsed.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+          bannerElapsed.textContent = `${elapsedStr} elapsed`;
         }
       }
+    }
+    if (dashboardSessionBanner) {
+      dashboardSessionBanner.hidden = !isLive;
+      dashboardSessionBanner.style.display = isLive ? 'flex' : 'none';
+      if (isLive) {
+        if (dashBannerTitle) dashBannerTitle.textContent = `Active: ${activeSession.routineName}`;
+        if (dashBannerElapsedText) dashBannerElapsedText.textContent = `${elapsedStr} elapsed`;
+      }
+    }
+    if (btnDashboardStart) {
+      btnDashboardStart.textContent = isLive ? 'Resume Workout ▶' : 'Start Workout ▶';
     }
     if (activeIndicator) {
       activeIndicator.hidden = !isLive;
@@ -558,6 +621,9 @@
         bannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
       } else {
         bannerElapsed.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+      }
+      if (dashBannerElapsedText) {
+        dashBannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
       }
       // Auto-save every 15s
       if (activeSession.elapsedSeconds % 15 === 0) {
@@ -970,6 +1036,7 @@
     discardSession();
     renderRoutines();
     renderHistory();
+    renderDashboard();
   }
 
   btnCloseComplete.addEventListener('click', () => {
@@ -1023,6 +1090,7 @@
     history = [];
     saveJSON('plates_history', history);
     renderHistory();
+    renderDashboard();
     toast('History cleared');
   });
 
@@ -1136,9 +1204,252 @@
   }
 
   // ══════════════════════════════════════════
+  //  STATS DASHBOARD ENGINE
+  // ══════════════════════════════════════════
+
+  function renderDashboard() {
+    updateBannerVisibility();
+
+    // 1. Dynamic Greeting based on time
+    const hour = new Date().getHours();
+    const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    if (dashboardGreeting) {
+      dashboardGreeting.textContent = `${timeGreeting}! Ready to lift?`;
+    }
+
+    // 2. Compute Weekly Streak & 7-Day Consistency (Mon - Sun)
+    const now = new Date();
+    const currentDayOfWeek = (now.getDay() + 6) % 7; // 0 = Mon, 6 = Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - currentDayOfWeek);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const completedDaysSet = new Set();
+    let volumeThisWeek = 0;
+    let workoutsThisMonth = 0;
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    history.forEach(entry => {
+      const d = new Date(entry.date);
+      if (d >= monday && d <= sunday) {
+        const dayIdx = (d.getDay() + 6) % 7;
+        completedDaysSet.add(dayIdx);
+        volumeThisWeek += (entry.totalVolume || 0);
+      }
+      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+        workoutsThisMonth++;
+      }
+    });
+
+    // Render 7-day strip
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    if (weeklyDaysRow) {
+      weeklyDaysRow.innerHTML = dayNames.map((name, idx) => {
+        const isDone = completedDaysSet.has(idx);
+        const isToday = idx === currentDayOfWeek;
+        return `
+          <div class="day-pill ${isDone ? 'completed' : ''} ${isToday ? 'today' : ''}" title="${name}${isDone ? ' · Completed' : ''}${isToday ? ' (Today)' : ''}">
+            <span class="day-pill-name">${name}</span>
+            <div class="day-pill-status">
+              ${isDone ? '✓' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (weeklyCompletionText) {
+      weeklyCompletionText.textContent = `${completedDaysSet.size} of 4 target workouts completed this week`;
+    }
+
+    // Streak calculation (consecutive days with activity)
+    const sortedDates = history
+      .map(h => new Date(h.date))
+      .sort((a, b) => b - a);
+
+    let streakCount = 0;
+    if (sortedDates.length > 0) {
+      const uniqueDays = new Set(sortedDates.map(d => d.toISOString().slice(0, 10)));
+      const checkDate = new Date();
+      const todayKey = checkDate.toISOString().slice(0, 10);
+      checkDate.setDate(checkDate.getDate() - 1);
+      const yesterdayKey = checkDate.toISOString().slice(0, 10);
+
+      let cursor = new Date();
+      if (!uniqueDays.has(todayKey) && uniqueDays.has(yesterdayKey)) {
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      while (uniqueDays.has(cursor.toISOString().slice(0, 10))) {
+        streakCount++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+    }
+
+    if (dashboardStreakText) {
+      dashboardStreakText.textContent = streakCount > 0
+        ? `${streakCount} Day${streakCount > 1 ? 's' : ''} Streak`
+        : `${completedDaysSet.size > 0 ? `${completedDaysSet.size} Active This Week` : '0 Day Streak'}`;
+    }
+
+    // 3. KPI Grid Metrics
+    const totalVolume = history.reduce((sum, h) => sum + (h.totalVolume || 0), 0);
+    const totalDurationSeconds = history.reduce((sum, h) => sum + (h.durationSeconds || 0), 0);
+    const totalHours = Math.floor(totalDurationSeconds / 3600);
+    const totalMinutes = Math.floor((totalDurationSeconds % 3600) / 60);
+    const avgDurationMin = history.length > 0 ? Math.round(totalDurationSeconds / history.length / 60) : 0;
+
+    if (kpiTotalVolume) kpiTotalVolume.textContent = `${totalVolume.toLocaleString('en-IN')} lbs`;
+    if (kpiVolumeWeek) kpiVolumeWeek.textContent = `+${volumeThisWeek.toLocaleString('en-IN')} lbs this week`;
+    if (kpiTotalWorkouts) kpiTotalWorkouts.textContent = `${history.length}`;
+    if (kpiWorkoutsMonth) kpiWorkoutsMonth.textContent = `${workoutsThisMonth} logged this month`;
+    if (kpiTotalTime) kpiTotalTime.textContent = `${totalHours}h ${totalMinutes}m`;
+    if (kpiAvgDuration) kpiAvgDuration.textContent = `${avgDurationMin} min avg per session`;
+
+    // 4. Personal Records Spotlight (Peak weight per exercise)
+    const exercisePRs = {};
+    history.forEach(entry => {
+      if (!entry.exercises) return;
+      entry.exercises.forEach(ex => {
+        if (!ex.name || !ex.sets) return;
+        const normName = ex.name.trim();
+        ex.sets.forEach(s => {
+          const w = Number(s.weight) || 0;
+          const r = Number(s.reps) || 0;
+          if (w > 0) {
+            if (!exercisePRs[normName] || w > exercisePRs[normName].weight) {
+              exercisePRs[normName] = {
+                name: normName,
+                weight: w,
+                reps: r,
+                date: entry.date,
+              };
+            }
+          }
+        });
+      });
+    });
+
+    const prKeys = Object.keys(exercisePRs);
+    if (kpiPrCount) kpiPrCount.textContent = `${prKeys.length}`;
+    if (kpiPrSubtext) {
+      kpiPrSubtext.textContent = prKeys.length > 0 ? `Across ${prKeys.length} personal record lifts` : 'Log lifts to set personal records';
+    }
+
+    if (prRecordsList) {
+      if (prKeys.length === 0) {
+        prRecordsList.innerHTML = `
+          <div class="chart-empty-placeholder" style="height: 140px">
+            <span>No personal records recorded yet.</span>
+            <span style="font-size: 11px; opacity: 0.7">Complete sets to automatically spotlight your best lifts.</span>
+          </div>
+        `;
+      } else {
+        const topPRs = prKeys
+          .map(k => exercisePRs[k])
+          .sort((a, b) => b.weight - a.weight)
+          .slice(0, 4);
+
+        prRecordsList.innerHTML = topPRs.map(pr => {
+          const prDate = new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return `
+            <div class="pr-record-item">
+              <div>
+                <div class="pr-record-name">${esc(pr.name)}</div>
+                <div class="pr-record-date">${pr.reps} reps · Set on ${prDate}</div>
+              </div>
+              <span class="pr-record-badge">${pr.weight} lbs</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 5. Volume Bar Chart (Last 7 Sessions)
+    if (volumeChartContainer) {
+      const recentHistory = [...history].slice(0, 7).reverse();
+      if (recentHistory.length === 0) {
+        volumeChartContainer.innerHTML = `
+          <div class="chart-empty-placeholder">
+            <span>No workout volume data yet.</span>
+            <span style="font-size: 11px; opacity: 0.7">Complete sessions to view your volume progression chart.</span>
+          </div>
+        `;
+        if (chartVolumeAvg) chartVolumeAvg.textContent = '0 lbs avg';
+      } else {
+        const maxVol = Math.max(...recentHistory.map(h => h.totalVolume || 0), 100);
+        const avgVol = Math.round(recentHistory.reduce((s, h) => s + (h.totalVolume || 0), 0) / recentHistory.length);
+        if (chartVolumeAvg) chartVolumeAvg.textContent = `${avgVol.toLocaleString('en-IN')} lbs avg`;
+
+        volumeChartContainer.innerHTML = recentHistory.map(h => {
+          const vol = h.totalVolume || 0;
+          const pct = Math.max(14, Math.round((vol / maxVol) * 100));
+          const date = new Date(h.date);
+          const dateLabel = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+          const volDisplay = vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : `${vol}`;
+
+          return `
+            <div class="chart-bar-group" title="${esc(h.routineName)}: ${vol.toLocaleString()} lbs">
+              <span class="chart-bar-val">${volDisplay}</span>
+              <div class="chart-bar-track">
+                <div class="chart-bar-fill" style="height: ${pct}%"></div>
+              </div>
+              <span class="chart-bar-label">${dateLabel}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 6. Recent Sessions List
+    if (recentSessionsList) {
+      const latestSessions = [...history].slice(0, 3);
+      if (latestSessions.length === 0) {
+        recentSessionsList.innerHTML = `
+          <div class="chart-empty-placeholder" style="grid-column: 1 / -1; height: 110px">
+            <span>No workout sessions logged yet.</span>
+            <button class="btn-primary btn-small" id="btn-dash-first-workout" style="margin-top: 6px">Start First Workout ▶</button>
+          </div>
+        `;
+        const btnFirst = $('#btn-dash-first-workout');
+        if (btnFirst) btnFirst.addEventListener('click', () => switchTab('workouts'));
+      } else {
+        recentSessionsList.innerHTML = latestSessions.map(h => {
+          const date = new Date(h.date);
+          const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          const durStr = h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} min` : '';
+          const volStr = h.totalVolume ? `${h.totalVolume.toLocaleString('en-IN')} lbs` : '';
+          const exercisesStr = h.exercises ? h.exercises.map(e => e.name).slice(0, 3).join(', ') : '';
+
+          return `
+            <div class="recent-session-card">
+              <div class="recent-session-top">
+                <div class="recent-session-routine">${esc(h.routineName)}</div>
+                <div class="recent-session-date">${dateStr}</div>
+              </div>
+              <div class="recent-session-meta">
+                ${durStr ? `⏱️ ${durStr}` : ''} ${volStr ? ` · 🏋️ ${volStr}` : ''}
+              </div>
+              <div class="recent-session-exercises">
+                ${esc(exercisesStr)}${h.exercises && h.exercises.length > 3 ? ` +${h.exercises.length - 3} more` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════
   //  APP INITIALIZATION
   // ══════════════════════════════════════════
   applyTheme(currentTheme);
+  renderDashboard();
   renderRoutines();
   renderHistory();
   renderShopping();

@@ -75,7 +75,16 @@
 
   <!-- ───── Navigation Tabs ───── -->
   <nav id="main-nav">
-    <button class="nav-btn active" data-tab="workouts" id="nav-btn-workouts">
+    <button class="nav-btn active" data-tab="dashboard" id="nav-btn-dashboard">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1.5"></rect>
+        <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+        <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+        <rect x="3" y="16" width="7" height="5" rx="1.5"></rect>
+      </svg>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-btn" data-tab="workouts" id="nav-btn-workouts">
       <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 12h20"></path>
         <path d="M6 8v8"></path>
@@ -113,8 +122,152 @@
   <!-- ───── Main Content ───── -->
   <main id="app-main">
 
+    <!-- ── STATS DASHBOARD / LANDING TAB ── -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="section-header">
+        <div>
+          <h1 id="dashboard-greeting">Training Dashboard</h1>
+          <p class="subtitle" id="dashboard-subtitle">Momentum, streaks, and volume analytics.</p>
+        </div>
+        <button id="btn-dashboard-start" class="btn-primary btn-small">Start Workout ▶</button>
+      </div>
+
+      <!-- Quick Resume Banner (visible when session is running) -->
+      <div id="dashboard-session-banner" class="session-banner" hidden>
+        <div class="session-banner-content">
+          <span class="session-banner-pulse"></span>
+          <div>
+            <div class="session-banner-title" id="dash-banner-title">Workout in Progress</div>
+            <div class="session-banner-subtitle" id="dash-banner-elapsed">
+              <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="8"></circle>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="17" y1="4" x2="19" y2="6"></line>
+              </svg>
+              <span id="dash-banner-elapsed-text">00:00 elapsed</span>
+            </div>
+          </div>
+        </div>
+        <button id="btn-dash-resume" class="btn-primary btn-small">Resume ▶</button>
+      </div>
+
+      <!-- 7-Day Consistency Tracker -->
+      <div class="dashboard-card weekly-streak-card">
+        <div class="streak-card-header">
+          <div>
+            <div class="streak-card-title">Weekly Consistency</div>
+            <div class="streak-card-subtitle" id="weekly-completion-text">0 of 4 workouts completed this week</div>
+          </div>
+          <div class="streak-pill" id="dashboard-streak-pill">
+            <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span id="dashboard-streak-text">0 Day Streak</span>
+          </div>
+        </div>
+        <div class="weekly-days-row" id="weekly-days-row">
+          <!-- Mon - Sun day pills injected by JS -->
+        </div>
+      </div>
+
+      <!-- Big 4 KPI Grid -->
+      <div class="dashboard-kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Total Volume Moved</span>
+            <svg class="kpi-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M2 12h20"></path><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M4 10v4"></path><path d="M20 10v4"></path>
+            </svg>
+          </div>
+          <div class="kpi-value" id="kpi-total-volume">0 lbs</div>
+          <div class="kpi-subtext" id="kpi-volume-week">+0 lbs this week</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Workouts Logged</span>
+            <svg class="kpi-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="kpi-value" id="kpi-total-workouts">0</div>
+          <div class="kpi-subtext" id="kpi-workouts-month">0 completed this month</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Time Under Bar</span>
+            <svg class="kpi-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div class="kpi-value" id="kpi-total-time">0h 0m</div>
+          <div class="kpi-subtext" id="kpi-avg-duration">0 min avg per session</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Personal Records</span>
+            <svg class="kpi-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"></path>
+              <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"></path>
+              <path d="M4 4h16v6a8 8 0 0 1-16 0V4z"></path>
+              <path d="M12 18v3"></path><path d="M8 21h8"></path>
+            </svg>
+          </div>
+          <div class="kpi-value" id="kpi-pr-count">0</div>
+          <div class="kpi-subtext" id="kpi-pr-subtext">Across tracked compound lifts</div>
+        </div>
+      </div>
+
+      <!-- Volume Trend & PR Spotlight (Two Columns) -->
+      <div class="dashboard-two-col">
+        <!-- Volume Trend Chart -->
+        <div class="dashboard-card volume-chart-card">
+          <div class="card-header-row">
+            <div>
+              <div class="dashboard-card-title">Volume Trend (Last 7 Sessions)</div>
+              <div class="dashboard-card-subtitle">Total weight lifted per completed workout</div>
+            </div>
+            <span class="stat-pill-highlight" id="chart-volume-avg">0 lbs avg</span>
+          </div>
+          <div class="volume-chart-container" id="volume-chart-container">
+            <!-- Pure SVG Bar Chart injected by JS -->
+          </div>
+        </div>
+
+        <!-- Personal Records Spotlight -->
+        <div class="dashboard-card pr-spotlight-card">
+          <div class="card-header-row">
+            <div>
+              <div class="dashboard-card-title">Personal Records Spotlight</div>
+              <div class="dashboard-card-subtitle">Peak single-set weights achieved</div>
+            </div>
+          </div>
+          <div class="pr-records-list" id="pr-records-list">
+            <!-- PR rows injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Sessions Feed -->
+      <div class="dashboard-card recent-sessions-card">
+        <div class="card-header-row">
+          <div>
+            <div class="dashboard-card-title">Recent Activity</div>
+            <div class="dashboard-card-subtitle">Last recorded workout sessions</div>
+          </div>
+          <button id="btn-goto-history-tab" class="btn-secondary btn-small">View All History ▶</button>
+        </div>
+        <div class="recent-sessions-list" id="recent-sessions-list">
+          <!-- Recent session cards injected by JS -->
+        </div>
+      </div>
+    </section>
+
     <!-- ── WORKOUTS / ROUTINES TAB ── -->
-    <section id="tab-workouts" class="tab-panel active">
+    <section id="tab-workouts" class="tab-panel">
       <!-- Active session resume banner (visible only when session is running) -->
       <div id="session-banner" class="session-banner" hidden>
         <div class="session-banner-content">

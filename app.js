@@ -142,10 +142,15 @@
   const btnClearHistory    = $('#btn-clear-history');
 
   // Shopping Tab
-  const shoppingInput      = $('#shopping-input');
-  const shoppingCategory   = $('#shopping-category');
-  const btnAddShopping     = $('#btn-add-shopping');
-  const shoppingListEl     = $('#shopping-list');
+  const shoppingInput         = $('#shopping-input');
+  const shoppingPrice         = $('#shopping-price');
+  const shoppingCategory      = $('#shopping-category');
+  const btnAddShopping        = $('#btn-add-shopping');
+  const shoppingListEl        = $('#shopping-list');
+  const shoppingBudgetBar     = $('#shopping-budget-bar');
+  const shoppingTotalSpend    = $('#shopping-total-spend');
+  const shoppingCartSpend     = $('#shopping-cart-spend');
+  const shoppingRemainingSpend= $('#shopping-remaining-spend');
 
   // Routine Modal
   const modalRoutine       = $('#modal-routine');
@@ -193,6 +198,11 @@
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function fmtRupees(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) return '0';
+    return Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
 
   function toast(msg) {
@@ -1020,7 +1030,27 @@
   //  SHOPPING LIST
   // ══════════════════════════════════════════
 
+  function updateShoppingBudget() {
+    if (!shoppingList.length) {
+      if (shoppingBudgetBar) shoppingBudgetBar.style.display = 'none';
+      return;
+    }
+    if (shoppingBudgetBar) shoppingBudgetBar.style.display = 'grid';
+
+    const total = shoppingList.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+    const cart = shoppingList
+      .filter(item => item.checked)
+      .reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+    const remaining = Math.max(0, total - cart);
+
+    if (shoppingTotalSpend) shoppingTotalSpend.textContent = `₹${fmtRupees(total)}`;
+    if (shoppingCartSpend) shoppingCartSpend.textContent = `₹${fmtRupees(cart)}`;
+    if (shoppingRemainingSpend) shoppingRemainingSpend.textContent = `₹${fmtRupees(remaining)}`;
+  }
+
   function renderShopping() {
+    updateShoppingBudget();
+
     if (shoppingList.length === 0) {
       shoppingListEl.innerHTML = `
         <div class="empty-state">
@@ -1050,6 +1080,9 @@
             <div class="shopping-item ${item.checked ? 'checked' : ''}" data-id="${item.id}">
               <div class="shopping-checkbox ${item.checked ? 'checked' : ''}" data-id="${item.id}"></div>
               <span class="shopping-item-name">${esc(item.name)}</span>
+              ${item.price !== null && item.price !== undefined && !isNaN(item.price) && item.price > 0 ? `
+                <span class="shopping-item-price" title="Price">₹${fmtRupees(item.price)}</span>
+              ` : ''}
               <button class="shopping-item-delete" data-id="${item.id}" title="Remove item">✕</button>
             </div>
           `).join('')}
@@ -1078,20 +1111,28 @@
 
   btnAddShopping.addEventListener('click', addShoppingItem);
   shoppingInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addShoppingItem(); });
+  if (shoppingPrice) {
+    shoppingPrice.addEventListener('keydown', (e) => { if (e.key === 'Enter') addShoppingItem(); });
+  }
 
   function addShoppingItem() {
     const name = shoppingInput.value.trim();
     if (!name) return;
+    const rawPrice = shoppingPrice ? shoppingPrice.value.trim() : '';
+    const price = rawPrice !== '' && !isNaN(rawPrice) ? Math.max(0, parseFloat(rawPrice)) : null;
+
     shoppingList.push({
       id: uid(),
       name,
       category: shoppingCategory.value,
       checked: false,
+      price: price,
     });
     saveJSON('plates_shopping', shoppingList);
     shoppingInput.value = '';
+    if (shoppingPrice) shoppingPrice.value = '';
     renderShopping();
-    toast('Item added');
+    toast(`Added ${name}${price ? ` · ₹${fmtRupees(price)}` : ''}`);
   }
 
   // ══════════════════════════════════════════

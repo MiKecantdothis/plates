@@ -77,20 +77,36 @@
   <!-- ───── Navigation Tabs ───── -->
   <nav id="main-nav">
     <button class="nav-btn active" data-tab="workouts" id="nav-btn-workouts">
-      <span class="nav-icon">💪</span>
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12h20"></path>
+        <path d="M6 8v8"></path>
+        <path d="M18 8v8"></path>
+        <path d="M4 10v4"></path>
+        <path d="M20 10v4"></path>
+      </svg>
       <span class="nav-label">Routines</span>
     </button>
     <button class="nav-btn" data-tab="active" id="nav-btn-active">
-      <span class="nav-icon">⚡</span>
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
       <span class="nav-label">Live Session</span>
       <span class="active-dot" id="active-indicator" hidden></span>
     </button>
     <button class="nav-btn" data-tab="history" id="nav-btn-history">
-      <span class="nav-icon">📊</span>
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
       <span class="nav-label">History</span>
     </button>
     <button class="nav-btn" data-tab="shopping" id="nav-btn-shopping">
-      <span class="nav-icon">🛒</span>
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 0 1-8 0"></path>
+      </svg>
       <span class="nav-label">Shopping</span>
     </button>
   </nav>
@@ -106,7 +122,15 @@
           <span class="session-banner-pulse"></span>
           <div>
             <div class="session-banner-title" id="banner-routine-name">Workout in Progress</div>
-            <div class="session-banner-subtitle" id="banner-elapsed">⏱️ 00:00 elapsed</div>
+            <div class="session-banner-subtitle" id="banner-elapsed">
+              <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="8"></circle>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="17" y1="4" x2="19" y2="6"></line>
+              </svg>
+              <span id="banner-elapsed-text">00:00 elapsed</span>
+            </div>
           </div>
         </div>
         <button id="btn-resume-session" class="btn-primary btn-small">Resume ▶</button>
@@ -150,10 +174,27 @@
         <div class="active-top-bar">
           <div class="active-routine-info">
             <span class="active-badge" id="active-routine-badge">Workout</span>
-            <span class="active-timer-display" id="active-elapsed-timer">⏱️ 00:00</span>
+            <span class="active-timer-display" id="active-elapsed-timer">
+              <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="8"></circle>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="17" y1="4" x2="19" y2="6"></line>
+              </svg>
+              <span id="active-elapsed-text">00:00</span>
+            </span>
           </div>
           <div class="active-header-actions">
-            <button id="btn-finish-workout" class="btn-primary btn-small">Finish Workout 🏆</button>
+            <button id="btn-finish-workout" class="btn-primary btn-small">
+              <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"></path>
+                <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"></path>
+                <path d="M4 4h16v6a8 8 0 0 1-16 0V4z"></path>
+                <path d="M12 18v3"></path>
+                <path d="M8 21h8"></path>
+              </svg>
+              <span>Finish Workout</span>
+            </button>
             <button id="btn-cancel-workout" class="btn-danger btn-small" title="Discard Workout">Cancel</button>
           </div>
         </div>
@@ -183,7 +224,12 @@
           <!-- Rest Countdown Banner (Contextual between sets) -->
           <div id="active-rest-panel" class="active-rest-panel" hidden>
             <div class="rest-panel-header">
-              <span class="rest-pulse-icon">⏱️</span>
+              <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="8"></circle>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="2" x2="12" y2="5"></line>
+                <line x1="17" y1="4" x2="19" y2="6"></line>
+              </svg>
               <span class="rest-panel-title">REST PERIOD</span>
               <span class="rest-goal-pill" id="rest-goal-label">Hypertrophy (90s)</span>
             </div>
@@ -272,12 +318,12 @@
       <div class="shopping-input-row">
         <input type="text" id="shopping-input" placeholder="Add an item…" />
         <select id="shopping-category">
-          <option value="protein">🥩 Protein</option>
-          <option value="supplements">💊 Supplements</option>
-          <option value="carbs">🍚 Carbs</option>
-          <option value="fruits-veg">🥦 Fruits & Veg</option>
-          <option value="dairy">🥛 Dairy</option>
-          <option value="other">📦 Other</option>
+          <option value="protein">Protein</option>
+          <option value="supplements">Supplements</option>
+          <option value="carbs">Carbs</option>
+          <option value="fruits-veg">Fruits & Veg</option>
+          <option value="dairy">Dairy</option>
+          <option value="other">Other</option>
         </select>
         <button id="btn-add-shopping" class="btn-primary">Add</button>
       </div>
@@ -310,7 +356,15 @@
   <!-- ───── Modal: Workout Completed Celebration ───── -->
   <div id="modal-workout-complete" class="modal-overlay" hidden>
     <div class="modal modal-celebration">
-      <div class="celebration-badge">🏆</div>
+      <div class="celebration-badge">
+        <svg class="celebration-trophy-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"></path>
+          <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"></path>
+          <path d="M4 4h16v6a8 8 0 0 1-16 0V4z"></path>
+          <path d="M12 18v3"></path>
+          <path d="M8 21h8"></path>
+        </svg>
+      </div>
       <h2>Workout Complete!</h2>
       <p class="subtitle" id="complete-routine-name" style="margin-bottom: 18px">Great session crushed.</p>
       
@@ -334,7 +388,14 @@
       </div>
 
       <div class="modal-actions" style="justify-content: center; margin-top: 24px">
-        <button id="btn-close-complete" class="btn-primary" style="width: 100%">Save & View History 📊</button>
+        <button id="btn-close-complete" class="btn-primary" style="width: 100%">
+          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Save & View History</span>
+        </button>
       </div>
     </div>
   </div>

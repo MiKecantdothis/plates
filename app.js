@@ -19,12 +19,12 @@
   };
 
   const CATEGORY_LABELS = {
-    protein:      '🥩 Protein',
-    supplements:  '💊 Supplements',
-    carbs:        '🍚 Carbs',
-    'fruits-veg': '🥦 Fruits & Veg',
-    dairy:        '🥛 Dairy',
-    other:        '📦 Other',
+    protein:      'Protein',
+    supplements:  'Supplements',
+    carbs:        'Carbs',
+    'fruits-veg': 'Fruits & Veg',
+    dairy:        'Dairy',
+    other:        'Other',
   };
 
   // Default seed routines if the user has none yet
@@ -96,6 +96,7 @@
   const sessionBanner      = $('#session-banner');
   const bannerRoutineName  = $('#banner-routine-name');
   const bannerElapsed      = $('#banner-elapsed');
+  const bannerElapsedText  = $('#banner-elapsed-text');
   const btnResumeSession   = $('#btn-resume-session');
 
   // Active Guided Session Tab
@@ -104,6 +105,7 @@
   const btnGotoRoutines    = $('#btn-goto-routines');
   const activeRoutineBadge = $('#active-routine-badge');
   const activeElapsedTimer = $('#active-elapsed-timer');
+  const activeElapsedText  = $('#active-elapsed-text');
   const btnFinishWorkout   = $('#btn-finish-workout');
   const btnCancelWorkout   = $('#btn-cancel-workout');
   const exerciseStepper    = $('#exercise-stepper');
@@ -275,7 +277,11 @@
       sessionBanner.style.display = isLive ? 'flex' : 'none';
       if (isLive) {
         bannerRoutineName.textContent = `Active: ${activeSession.routineName}`;
-        bannerElapsed.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+        if (bannerElapsedText) {
+          bannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+        } else {
+          bannerElapsed.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+        }
       }
     }
     if (activeIndicator) {
@@ -298,7 +304,7 @@
     btnThemeToggle.addEventListener('click', () => {
       const next = currentTheme === 'light' ? 'dark' : 'light';
       applyTheme(next);
-      toast(next === 'light' ? '☀️ Light mode active' : '🌙 Dark mode active');
+      toast(next === 'light' ? 'Light mode active' : 'Dark mode active');
     });
   }
 
@@ -346,8 +352,18 @@
         <div class="routine-card-header">
           <span class="routine-card-title">${esc(r.name)}</span>
           <div class="routine-card-actions">
-            <button class="btn-icon" data-action="edit" data-id="${r.id}" title="Edit routine">✏️</button>
-            <button class="btn-icon danger" data-action="delete" data-id="${r.id}" title="Delete routine">🗑️</button>
+            <button class="btn-icon" data-action="edit" data-id="${r.id}" title="Edit routine">
+              <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="btn-icon danger" data-action="delete" data-id="${r.id}" title="Delete routine">
+              <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -515,7 +531,7 @@
     startSessionTimer();
     renderRoutines();
     switchTab('active');
-    toast(`Workout started: ${routine.name} 💪`);
+    toast(`Workout started: ${routine.name}`);
   }
 
   function startSessionTimer() {
@@ -523,8 +539,16 @@
     sessionTimerInterval = setInterval(() => {
       if (!activeSession) return;
       activeSession.elapsedSeconds++;
-      activeElapsedTimer.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)}`;
-      bannerElapsed.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+      if (activeElapsedText) {
+        activeElapsedText.textContent = fmtTime(activeSession.elapsedSeconds);
+      } else {
+        activeElapsedTimer.textContent = fmtTime(activeSession.elapsedSeconds);
+      }
+      if (bannerElapsedText) {
+        bannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+      } else {
+        bannerElapsed.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+      }
       // Auto-save every 15s
       if (activeSession.elapsedSeconds % 15 === 0) {
         saveJSON('plates_active_session', activeSession);
@@ -555,7 +579,11 @@
 
     // Routine Badge & Elapsed Timer
     activeRoutineBadge.textContent = activeSession.routineName;
-    activeElapsedTimer.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)}`;
+    if (activeElapsedText) {
+      activeElapsedText.textContent = fmtTime(activeSession.elapsedSeconds);
+    } else {
+      activeElapsedTimer.textContent = fmtTime(activeSession.elapsedSeconds);
+    }
 
     const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
     if (!currentEx) {
@@ -642,7 +670,7 @@
     // Previous / Next Exercise Buttons
     btnPrevExercise.disabled = activeSession.currentExerciseIndex === 0;
     btnNextExercise.textContent = activeSession.currentExerciseIndex === activeSession.exercises.length - 1
-      ? 'Finish Workout 🏆'
+      ? 'Finish Workout'
       : 'Next Exercise ▶';
 
     // If rest is currently running, keep it visible
@@ -753,7 +781,7 @@
         // Completion chime & haptic
         playRestEndChime();
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        toast('⏱️ Rest complete — Time to lift!');
+        toast('Rest complete — Time to lift!');
 
         // Check if all sets for this exercise are done
         const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
@@ -802,7 +830,7 @@
       clearInterval(restTimerInterval);
       activeRestPanel.hidden = true;
       saveJSON('plates_active_session', activeSession);
-      toast('Rest skipped — let\'s lift! 💪');
+      toast('Rest skipped — let\'s lift!');
       setRepsInput.focus();
     }
   });
@@ -947,7 +975,11 @@
     if (history.length === 0) {
       historyList.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">📊</div>
+          <svg class="empty-state-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
           <p class="empty-state-text">No workouts logged yet.<br>Choose a routine to start your first session.</p>
         </div>`;
       return;
@@ -957,8 +989,8 @@
       const date = new Date(entry.date);
       const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      const durationStr = entry.durationSeconds ? ` · ⏱️ ${Math.round(entry.durationSeconds / 60)} min` : '';
-      const volumeStr = entry.totalVolume ? ` · 🏋️ ${entry.totalVolume.toLocaleString()} lbs volume` : '';
+      const durationStr = entry.durationSeconds ? ` · ${Math.round(entry.durationSeconds / 60)} min` : '';
+      const volumeStr = entry.totalVolume ? ` · ${entry.totalVolume.toLocaleString()} lbs volume` : '';
 
       return `
         <div class="history-card">
@@ -992,7 +1024,11 @@
     if (shoppingList.length === 0) {
       shoppingListEl.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🛒</div>
+          <svg class="empty-state-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
           <p class="empty-state-text">Your shopping list is empty.<br>Add supplements, protein, and meals above.</p>
         </div>`;
       return;

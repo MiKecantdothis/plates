@@ -333,6 +333,60 @@ body {
 
 .nav-icon { font-size: 17px; }
 
+/* ── Minimal Outline SVG Icons ── */
+.nav-icon-svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  transition: transform var(--transition-fast), stroke var(--transition-fast);
+}
+
+.nav-btn:hover .nav-icon-svg {
+  transform: translateY(-1px);
+}
+
+.inline-icon-svg {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+  stroke: currentColor;
+  fill: none;
+  margin-right: 5px;
+  position: relative;
+  top: -1px;
+}
+
+.btn-icon-svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  stroke: currentColor;
+  fill: none;
+  pointer-events: none;
+}
+
+.empty-state-icon-svg {
+  width: 44px;
+  height: 44px;
+  display: block;
+  margin: 0 auto 14px;
+  stroke: var(--text-muted);
+  fill: none;
+  opacity: 0.75;
+}
+
+.celebration-trophy-svg {
+  width: 52px;
+  height: 52px;
+  display: inline-block;
+  stroke: var(--accent);
+  fill: none;
+  filter: drop-shadow(0 0 16px var(--accent-glow));
+}
+
 /* ── Main Content Area ── */
 #app-main {
   max-width: 980px;

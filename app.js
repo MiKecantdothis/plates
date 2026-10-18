@@ -32,6 +32,7 @@
   let history      = loadJSON('plates_history', []);
   let shoppingList = loadJSON('plates_shopping', []);
   let currentGoal  = localStorage.getItem('plates_goal') || 'strength';
+  let currentTheme = localStorage.getItem('plates_theme') || 'dark';
   let editingRoutineId = null;
 
   // Timer state
@@ -45,6 +46,8 @@
   const $$ = (sel) => document.querySelectorAll(sel);
 
   const goalSelect       = $('#goal-select');
+  const btnThemeToggle   = $('#theme-toggle');
+  const metaThemeColor   = $('#meta-theme-color');
   const routinesGrid     = $('#routines-grid');
   const btnAddRoutine    = $('#btn-add-routine');
   const modalRoutine     = $('#modal-routine');
@@ -115,6 +118,24 @@
     renderTimerPresets();
   });
 
+  // ── Theme Switcher ──
+  function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('plates_theme', theme);
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', theme === 'light' ? '#f5f7fb' : '#090b0e');
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(nextTheme);
+      toast(nextTheme === 'light' ? '☀️ Light mode enabled' : '🌙 Dark mode enabled');
+    });
+  }
+
   // ══════════════════════════════════════
   //  ROUTINES
   // ══════════════════════════════════════
@@ -123,7 +144,17 @@
     if (routines.length === 0) {
       routinesGrid.innerHTML = `
         <div class="empty-state" style="grid-column:1/-1">
-          <div class="empty-state-icon">🏋️</div>
+          <svg class="empty-state-plate" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="16.5" stroke="currentColor" stroke-width="2.2" class="plate-outer"/>
+            <circle cx="18" cy="18" r="14" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.45"/>
+            <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+            <circle cx="18" cy="18" r="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.6" class="plate-hub"/>
+            <circle cx="18" cy="18" r="3.2" fill="var(--bg-base)" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="18" cy="13.2" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="18" cy="22.8" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="13.2" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="22.8" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+          </svg>
           <p class="empty-state-text">No routines yet.<br>Tap <strong>+ Add Routine</strong> to create your first workout.</p>
         </div>`;
       return;
@@ -533,6 +564,7 @@
   }
 
   // ── Init ──
+  applyTheme(currentTheme);
   renderRoutines();
   renderTimerPresets();
   renderHistory();

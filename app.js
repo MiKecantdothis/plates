@@ -64,6 +64,13 @@
 
   // Active workout session state (persists across page reloads!)
   let activeSession = loadJSON('plates_active_session', null);
+  if (activeSession && (!activeSession.exercises || !Array.isArray(activeSession.exercises) || activeSession.exercises.length === 0)) {
+    activeSession = null;
+    localStorage.removeItem('plates_active_session');
+  }
+  if (activeSession && (typeof activeSession.currentExerciseIndex !== 'number' || activeSession.currentExerciseIndex >= activeSession.exercises.length || activeSession.currentExerciseIndex < 0)) {
+    activeSession.currentExerciseIndex = 0;
+  }
   let sessionTimerInterval = null;
   let restTimerInterval = null;
 
@@ -252,7 +259,29 @@
     btnGotoRoutines.addEventListener('click', () => switchTab('workouts'));
   }
   if (btnResumeSession) {
-    btnResumeSession.addEventListener('click', () => switchTab('active'));
+    btnResumeSession.addEventListener('click', (e) => {
+      e.stopPropagation();
+      switchTab('active');
+    });
+  }
+  if (sessionBanner) {
+    sessionBanner.addEventListener('click', () => switchTab('active'));
+  }
+
+  function updateBannerVisibility() {
+    const isLive = !!(activeSession && activeSession.exercises && activeSession.exercises.length > 0);
+    if (sessionBanner) {
+      sessionBanner.hidden = !isLive;
+      sessionBanner.style.display = isLive ? 'flex' : 'none';
+      if (isLive) {
+        bannerRoutineName.textContent = `Active: ${activeSession.routineName}`;
+        bannerElapsed.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)} elapsed`;
+      }
+    }
+    if (activeIndicator) {
+      activeIndicator.hidden = !isLive;
+      activeIndicator.style.display = isLive ? 'inline-block' : 'none';
+    }
   }
 
   // ── Theme Management ──
@@ -291,15 +320,7 @@
 
   function renderRoutines() {
     // Render top resume banner if a session is currently running
-    if (activeSession) {
-      sessionBanner.hidden = false;
-      bannerRoutineName.textContent = `Active: ${activeSession.routineName}`;
-      bannerElapsed.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)} elapsed`;
-      activeIndicator.hidden = false;
-    } else {
-      sessionBanner.hidden = true;
-      activeIndicator.hidden = true;
-    }
+    updateBannerVisibility();
 
     if (!routines || routines.length === 0) {
       routinesGrid.innerHTML = `
@@ -512,23 +533,36 @@
   }
 
   function renderActiveWorkoutView() {
-    if (!activeSession) {
+    if (!activeSession || !activeSession.exercises || !activeSession.exercises.length) {
       activeEmptyState.hidden = false;
+      activeEmptyState.style.display = 'flex';
       activeWorkoutView.hidden = true;
-      activeIndicator.hidden = true;
+      activeWorkoutView.style.display = 'none';
+      updateBannerVisibility();
       return;
     }
 
     activeEmptyState.hidden = true;
+    activeEmptyState.style.display = 'none';
     activeWorkoutView.hidden = false;
-    activeIndicator.hidden = false;
+    activeWorkoutView.style.display = 'block';
+    updateBannerVisibility();
+
+    // Guard exercise index
+    if (activeSession.currentExerciseIndex >= activeSession.exercises.length || activeSession.currentExerciseIndex < 0) {
+      activeSession.currentExerciseIndex = 0;
+    }
 
     // Routine Badge & Elapsed Timer
     activeRoutineBadge.textContent = activeSession.routineName;
     activeElapsedTimer.textContent = `⏱️ ${fmtTime(activeSession.elapsedSeconds)}`;
 
     const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
-    if (!currentEx) return;
+    if (!currentEx) {
+      discardSession();
+      renderRoutines();
+      return;
+    }
 
     // Stepper Pills (Exercise List Navigation)
     exerciseStepper.innerHTML = activeSession.exercises.map((ex, idx) => {
@@ -818,8 +852,15 @@
     clearInterval(restTimerInterval);
     activeSession = null;
     localStorage.removeItem('plates_active_session');
-    activeIndicator.hidden = true;
-    sessionBanner.hidden = true;
+    updateBannerVisibility();
+    if (activeEmptyState) {
+      activeEmptyState.hidden = false;
+      activeEmptyState.style.display = 'flex';
+    }
+    if (activeWorkoutView) {
+      activeWorkoutView.hidden = true;
+      activeWorkoutView.style.display = 'none';
+    }
   }
 
   // ── Finish Workout & Celebration ──

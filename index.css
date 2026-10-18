@@ -110,6 +110,10 @@
   padding: 0;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   color-scheme: dark light;
 }
@@ -608,6 +612,17 @@ body {
   margin-bottom: 20px;
   box-shadow: 0 4px 20px var(--accent-glow);
   animation: pulseGlow 3s infinite alternate;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.session-banner:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.session-banner[hidden] {
+  display: none !important;
 }
 
 @keyframes pulseGlow {

@@ -1,5 +1,5 @@
-// Plates Service Worker — offline support
-const CACHE_NAME = 'plates-v10';
+// Plates Service Worker — offline support with network-first strategy
+const CACHE_NAME = 'plates-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -7,9 +7,10 @@ const ASSETS = [
   './app.js',
   './icon-512.jpg',
   './manifest.json',
+  'https://cdn.jsdelivr.net/npm/chart.js',
 ];
 
-// Install: cache all assets
+// Install: pre-cache all assets and activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
@@ -17,19 +18,30 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches immediately and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch: cache-first strategy
+// Fetch: network-first strategy (always delivers latest updates, falls back to offline cache)
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

@@ -62,6 +62,11 @@
   let currentTheme = localStorage.getItem('plates_theme') || 'dark';
   let editingRoutineId = null;
 
+  // Chart.js instances & active filters
+  let volumeChartInstance = null;
+  let splitChartInstance = null;
+  let selectedVolumeRange = '7';
+
   // Active workout session state (persists across page reloads!)
   let activeSession = loadJSON('plates_active_session', null);
   if (activeSession && (!activeSession.exercises || !Array.isArray(activeSession.exercises) || activeSession.exercises.length === 0)) {
@@ -110,8 +115,13 @@
   const kpiAvgDuration        = $('#kpi-avg-duration');
   const kpiPrCount            = $('#kpi-pr-count');
   const kpiPrSubtext          = $('#kpi-pr-subtext');
-  const chartVolumeAvg        = $('#chart-volume-avg');
-  const volumeChartContainer  = $('#volume-chart-container');
+  const chartVolumeCanvas     = $('#chart-volume');
+  const chartVolumeEmpty      = $('#chart-volume-empty');
+  const volumeChartSubtitle   = $('#volume-chart-subtitle');
+  const chartRangeToggles     = $('#chart-range-toggles');
+  const chartSplitCanvas      = $('#chart-split');
+  const chartSplitEmpty       = $('#chart-split-empty');
+  const splitTotalSessions    = $('#split-total-sessions');
   const prRecordsList         = $('#pr-records-list');
   const btnGotoHistoryTab     = $('#btn-goto-history-tab');
   const recentSessionsList    = $('#recent-sessions-list');
@@ -329,6 +339,17 @@
   if (btnGotoHistoryTab) {
     btnGotoHistoryTab.addEventListener('click', () => switchTab('history'));
   }
+  if (chartRangeToggles) {
+    chartRangeToggles.addEventListener('click', (e) => {
+      const btn = e.target.closest('.range-btn');
+      if (!btn) return;
+      const range = btn.dataset.range;
+      if (!range || range === selectedVolumeRange) return;
+      chartRangeToggles.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', b === btn));
+      selectedVolumeRange = range;
+      renderVolumeChart();
+    });
+  }
 
   function updateBannerVisibility() {
     const isLive = !!(activeSession && activeSession.exercises && activeSession.exercises.length > 0);
@@ -370,6 +391,11 @@
     localStorage.setItem('plates_theme', theme);
     if (metaThemeColor) {
       metaThemeColor.setAttribute('content', theme === 'light' ? '#f0f4f9' : '#05070a');
+    }
+    // Dynamically update charts to match the new color scheme
+    if (typeof Chart !== 'undefined') {
+      renderVolumeChart();
+      renderSplitChart();
     }
   }
 
@@ -1204,8 +1230,309 @@
   }
 
   // ══════════════════════════════════════════
-  //  STATS DASHBOARD ENGINE
+  //  STATS DASHBOARD ENGINE (Chart.js & Analytics)
   // ══════════════════════════════════════════
+
+  function getChartTheme() {
+    const isLight = currentTheme === 'light';
+    return {
+      textColor: isLight ? '#64748b' : '#94a3b8',
+      gridColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)',
+      borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+      tooltipBg: isLight ? '#ffffff' : '#0d131f',
+      tooltipText: isLight ? '#0f172a' : '#f8fafc',
+      tooltipBorder: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(0, 212, 255, 0.35)',
+      accentLine: isLight ? '#0066ff' : '#00d4ff',
+      gradientStart: isLight ? 'rgba(0, 102, 255, 0.30)' : 'rgba(0, 212, 255, 0.35)',
+      gradientStop: isLight ? 'rgba(0, 102, 255, 0.0)' : 'rgba(0, 212, 255, 0.0)',
+      donutColors: isLight
+        ? ['#0066ff', '#00b4d8', '#7928ca', '#f72585', '#4361ee', '#ff9f1c', '#2ec4b6']
+        : ['#00d4ff', '#0070f3', '#7928ca', '#ff007a', '#00e5a3', '#ffbe0b', '#8338ec'],
+      donutBorder: isLight ? '#ffffff' : '#0d131f',
+    };
+  }
+
+  function renderVolumeChart() {
+    if (!chartVolumeCanvas) return;
+
+    if (typeof Chart === 'undefined') {
+      if (chartVolumeEmpty) {
+        chartVolumeEmpty.hidden = false;
+        const textSpan = chartVolumeEmpty.querySelector('span');
+        if (textSpan) textSpan.textContent = 'Chart library loading or offline...';
+      }
+      return;
+    }
+
+    if (!history || history.length === 0) {
+      if (chartVolumeEmpty) chartVolumeEmpty.hidden = false;
+      chartVolumeCanvas.style.display = 'none';
+      if (volumeChartInstance) {
+        volumeChartInstance.destroy();
+        volumeChartInstance = null;
+      }
+      if (volumeChartSubtitle) {
+        volumeChartSubtitle.textContent = 'Total weight lifted per session';
+      }
+      return;
+    }
+
+    // Determine data slice based on selectedVolumeRange
+    let sessions = [...history];
+    if (selectedVolumeRange === '7') {
+      sessions = sessions.slice(0, 7);
+    } else if (selectedVolumeRange === '14') {
+      sessions = sessions.slice(0, 14);
+    }
+    // Reverse chronologically so line progresses from past to present
+    sessions.reverse();
+
+    if (chartVolumeEmpty) chartVolumeEmpty.hidden = true;
+    chartVolumeCanvas.style.display = 'block';
+
+    const theme = getChartTheme();
+    const ctx = chartVolumeCanvas.getContext('2d');
+
+    // Create vertical gradient
+    const chartHeight = chartVolumeCanvas.clientHeight || 200;
+    const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+    gradient.addColorStop(0, theme.gradientStart);
+    gradient.addColorStop(1, theme.gradientStop);
+
+    const labels = sessions.map(s => {
+      const d = new Date(s.date);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const dataPoints = sessions.map(s => s.totalVolume || 0);
+
+    // Calculate average volume for subtitle
+    const avgVol = Math.round(dataPoints.reduce((a, b) => a + b, 0) / (dataPoints.length || 1));
+    if (volumeChartSubtitle) {
+      volumeChartSubtitle.textContent = `Avg ${avgVol.toLocaleString('en-IN')} lbs across ${sessions.length} session${sessions.length > 1 ? 's' : ''}`;
+    }
+
+    if (volumeChartInstance) {
+      volumeChartInstance.destroy();
+    }
+
+    volumeChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Session Volume (lbs)',
+          data: dataPoints,
+          borderColor: theme.accentLine,
+          backgroundColor: gradient,
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: theme.accentLine,
+          pointBorderColor: currentTheme === 'light' ? '#ffffff' : '#05070a',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHitRadius: 16,
+          pointHoverRadius: 6.5,
+          pointHoverBackgroundColor: theme.accentLine,
+          pointHoverBorderColor: '#ffffff',
+          pointHoverBorderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 500,
+          easing: 'easeOutQuart'
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index',
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: theme.tooltipBg,
+            titleColor: theme.tooltipText,
+            bodyColor: theme.tooltipText,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 10,
+            boxPadding: 4,
+            usePointStyle: true,
+            titleFont: {
+              family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+              size: 12,
+              weight: '600'
+            },
+            bodyFont: {
+              family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+              size: 12,
+              weight: '500'
+            },
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const s = sessions[idx];
+                const d = new Date(s.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                return `${d} · ${s.routineName || 'Workout'}`;
+              },
+              label: (item) => {
+                const idx = item.dataIndex;
+                const s = sessions[idx];
+                const setCnt = s.exercises ? s.exercises.reduce((acc, ex) => acc + (ex.sets ? ex.sets.length : 0), 0) : 0;
+                return ` Volume: ${item.parsed.y.toLocaleString('en-IN')} lbs (${setCnt} sets)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false,
+              drawBorder: false,
+            },
+            ticks: {
+              color: theme.textColor,
+              font: {
+                family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                size: 10,
+                weight: '500',
+              },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 7,
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: theme.gridColor,
+              drawBorder: false,
+            },
+            ticks: {
+              color: theme.textColor,
+              font: {
+                family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                size: 10,
+              },
+              callback: (val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val,
+              maxTicksLimit: 5,
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderSplitChart() {
+    if (!chartSplitCanvas) return;
+
+    if (typeof Chart === 'undefined') {
+      if (chartSplitEmpty) {
+        chartSplitEmpty.hidden = false;
+        const textSpan = chartSplitEmpty.querySelector('span');
+        if (textSpan) textSpan.textContent = 'Chart library loading or offline...';
+      }
+      return;
+    }
+
+    if (!history || history.length === 0) {
+      if (chartSplitEmpty) chartSplitEmpty.hidden = false;
+      chartSplitCanvas.style.display = 'none';
+      if (splitTotalSessions) splitTotalSessions.textContent = '0 Sessions';
+      if (splitChartInstance) {
+        splitChartInstance.destroy();
+        splitChartInstance = null;
+      }
+      return;
+    }
+
+    // Aggregate sessions by routineName
+    const routineCounts = {};
+    history.forEach(entry => {
+      const name = (entry.routineName || 'Custom Workout').trim();
+      routineCounts[name] = (routineCounts[name] || 0) + 1;
+    });
+
+    const entries = Object.entries(routineCounts).sort((a, b) => b[1] - a[1]);
+    const labels = entries.map(e => e[0]);
+    const counts = entries.map(e => e[1]);
+    const totalSessions = counts.reduce((a, b) => a + b, 0);
+
+    if (splitTotalSessions) {
+      splitTotalSessions.textContent = `${totalSessions} Session${totalSessions > 1 ? 's' : ''}`;
+    }
+
+    if (chartSplitEmpty) chartSplitEmpty.hidden = true;
+    chartSplitCanvas.style.display = 'block';
+
+    const theme = getChartTheme();
+    const ctx = chartSplitCanvas.getContext('2d');
+
+    if (splitChartInstance) {
+      splitChartInstance.destroy();
+    }
+
+    splitChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: counts,
+          backgroundColor: theme.donutColors.slice(0, labels.length),
+          borderColor: theme.donutBorder,
+          borderWidth: 2,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '66%',
+        animation: {
+          duration: 500,
+          easing: 'easeOutQuart'
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              color: theme.textColor,
+              padding: 10,
+              font: {
+                family: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+                size: 11,
+                weight: '500',
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: theme.tooltipBg,
+            titleColor: theme.tooltipText,
+            bodyColor: theme.tooltipText,
+            borderColor: theme.tooltipBorder,
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 10,
+            callbacks: {
+              label: (item) => {
+                const val = item.parsed;
+                const pct = Math.round((val / totalSessions) * 100);
+                return ` ${item.label}: ${val} session${val > 1 ? 's' : ''} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 
   function renderDashboard() {
     updateBannerVisibility();
@@ -1370,41 +1697,9 @@
       }
     }
 
-    // 5. Volume Bar Chart (Last 7 Sessions)
-    if (volumeChartContainer) {
-      const recentHistory = [...history].slice(0, 7).reverse();
-      if (recentHistory.length === 0) {
-        volumeChartContainer.innerHTML = `
-          <div class="chart-empty-placeholder">
-            <span>No workout volume data yet.</span>
-            <span style="font-size: 11px; opacity: 0.7">Complete sessions to view your volume progression chart.</span>
-          </div>
-        `;
-        if (chartVolumeAvg) chartVolumeAvg.textContent = '0 lbs avg';
-      } else {
-        const maxVol = Math.max(...recentHistory.map(h => h.totalVolume || 0), 100);
-        const avgVol = Math.round(recentHistory.reduce((s, h) => s + (h.totalVolume || 0), 0) / recentHistory.length);
-        if (chartVolumeAvg) chartVolumeAvg.textContent = `${avgVol.toLocaleString('en-IN')} lbs avg`;
-
-        volumeChartContainer.innerHTML = recentHistory.map(h => {
-          const vol = h.totalVolume || 0;
-          const pct = Math.max(14, Math.round((vol / maxVol) * 100));
-          const date = new Date(h.date);
-          const dateLabel = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
-          const volDisplay = vol >= 1000 ? `${(vol / 1000).toFixed(1)}k` : `${vol}`;
-
-          return `
-            <div class="chart-bar-group" title="${esc(h.routineName)}: ${vol.toLocaleString()} lbs">
-              <span class="chart-bar-val">${volDisplay}</span>
-              <div class="chart-bar-track">
-                <div class="chart-bar-fill" style="height: ${pct}%"></div>
-              </div>
-              <span class="chart-bar-label">${dateLabel}</span>
-            </div>
-          `;
-        }).join('');
-      }
-    }
+    // 5. Interactive Chart.js Graphs (Volume Progression & Routine Split)
+    renderVolumeChart();
+    renderSplitChart();
 
     // 6. Recent Sessions List
     if (recentSessionsList) {

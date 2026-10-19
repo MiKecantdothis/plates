@@ -1,7 +1,7 @@
 // Plates Service Worker — offline support
 // VERSION should match the ?v= numbers in index.html. If they ever drift
 // apart, offline still works: lookups fall back to ignoring the ?v= part.
-const VERSION = 13;
+const VERSION = 14;
 const CACHE_NAME = `plates-v${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
 

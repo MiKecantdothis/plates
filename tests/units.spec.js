@@ -1,112 +1,118 @@
-// Unit toggling between lbs and kg must be seamless, persistent, and reflected across the app.
+// Weights can be kg or lb. Each set keeps the unit it was logged in, so
+// switching changes what's shown and never what was saved.
 const { test, expect, startRoutine, seed, stored } = require('./support/fixtures');
 
-test('unit toggle in header switches between lbs and kg and persists', async ({ page }) => {
-  await page.goto('/');
+const workout = (id, exercises, daysAgo = 3) => {
+  const now = new Date();
+  return {
+    id, routineId: 'default-legs', routineName: 'Leg Day (Quads & Hamstrings)',
+    date: new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, 12).toISOString(),
+    durationSeconds: 3000, totalVolume: 0, totalSets: 1, exercises,
+  };
+};
 
-  const btnLbs = page.locator('#unit-btn-lbs');
-  const btnKg = page.locator('#unit-btn-kg');
+test.describe('a new user in India', () => {
+  test.use({ locale: 'en-IN' });
 
-  // Default is lbs
-  await expect(btnLbs).toHaveClass(/\bactive\b/);
-  await expect(btnKg).not.toHaveClass(/\bactive\b/);
-  expect(await page.evaluate(() => localStorage.getItem('plates_unit') || 'lbs')).toBe('lbs');
-
-  // Click KG
-  await btnKg.click();
-  await expect(btnKg).toHaveClass(/\bactive\b/);
-  await expect(btnLbs).not.toHaveClass(/\bactive\b/);
-  expect(await page.evaluate(() => localStorage.getItem('plates_unit'))).toBe('kg');
-
-  // Reload page to verify persistence
-  await page.reload();
-  await expect(page.locator('#unit-btn-kg')).toHaveClass(/\bactive\b/);
-  await expect(page.locator('#unit-btn-lbs')).not.toHaveClass(/\bactive\b/);
+  test('starts in kg, with kg-sized steps', async ({ page }) => {
+    await page.goto('/');
+    await startRoutine(page);
+    await expect(page.locator('#set-weight-label')).toHaveText('Weight (kg)');
+    await expect(page.locator('.unit-btn[data-unit="kg"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#btn-weight-minus')).toHaveText('-2.5');
+    await expect(page.locator('#btn-weight-plus')).toHaveText('+2.5');
+    await expect(page.locator('#btn-weight-plus10')).toHaveText('+5');
+    await page.fill('#set-weight-input', '60');
+    await page.click('#btn-weight-plus');
+    await expect(page.locator('#set-weight-input')).toHaveValue('62.5');
+  });
 });
 
-test('toggling unit updates set logger steppers, input values, and quick toggle', async ({ page }) => {
+test.describe('a new user in the US', () => {
+  test.use({ locale: 'en-US' });
+
+  test('starts in lb, with lb-sized steps', async ({ page }) => {
+    await page.goto('/');
+    await startRoutine(page);
+    await expect(page.locator('#set-weight-label')).toHaveText('Weight (lb)');
+    await expect(page.locator('#btn-weight-plus')).toHaveText('+5');
+    await expect(page.locator('#btn-weight-plus10')).toHaveText('+10');
+  });
+});
+
+test('switching units changes what is shown, never what was saved', async ({ page }) => {
   await page.goto('/');
   await startRoutine(page);
-
-  // In lbs mode
-  await expect(page.locator('#weight-unit-label')).toHaveText('lbs');
-  await expect(page.locator('#btn-weight-minus')).toHaveText('-5');
-  await expect(page.locator('#btn-weight-plus')).toHaveText('+5');
-  await expect(page.locator('#btn-weight-plus10')).toHaveText('+10');
-
-  // Fill 100 lbs
+  await page.click('.unit-btn[data-unit="kg"]');
   await page.fill('#set-weight-input', '100');
+  await page.fill('#set-reps-input', '5');
+  await page.click('#btn-complete-set');
+  await page.click('#btn-rest-skip');
+  await expect(page.locator('.set-record-detail').first()).toContainText('100 kg × 5');
 
-  // Use quick toggle in set logger to switch to kg
-  await page.click('#unit-quick-toggle');
-  await expect(page.locator('#weight-unit-label')).toHaveText('kg');
-  await expect(page.locator('#unit-btn-kg')).toHaveClass(/\bactive\b/);
-  await expect(page.locator('#btn-weight-minus')).toHaveText('-2.5');
-  await expect(page.locator('#btn-weight-plus')).toHaveText('+2.5');
-  await expect(page.locator('#btn-weight-plus10')).toHaveText('+5');
-
-  // 100 lbs converted to kg is 45.4
-  expect(await page.inputValue('#set-weight-input')).toBe('45.4');
-
-  // Test kg steppers: +2.5 should give 47.9
-  await page.click('#btn-weight-plus');
-  expect(await page.inputValue('#set-weight-input')).toBe('47.9');
-
-  // +5 should give 52.9
-  await page.click('#btn-weight-plus10');
-  expect(await page.inputValue('#set-weight-input')).toBe('52.9');
-
-  // -2.5 should give 50.4
-  await page.click('#btn-weight-minus');
-  expect(await page.inputValue('#set-weight-input')).toBe('50.4');
-
-  // Switch back to lbs using header
-  await page.click('#unit-btn-lbs');
-  await expect(page.locator('#weight-unit-label')).toHaveText('lbs');
-  await expect(page.locator('#btn-weight-minus')).toHaveText('-5');
+  await page.click('.unit-btn[data-unit="lb"]');
+  await expect(page.locator('.set-record-detail').first()).toContainText('220.5 lb × 5');
+  await expect(page.locator('#set-weight-input')).toHaveValue('220.5'); // the box converts too
+  const session = await stored(page, 'plates_active_session');
+  expect(session.exercises[0].sets[0]).toMatchObject({ weight: 100, unit: 'kg', reps: 5 });
 });
 
-test('logging sets and completing workout in KG saves properly and displays in history and dashboard', async ({ page }) => {
+test.describe('someone who logged sets before units existed', () => {
+  test.use({ locale: 'en-IN' });
+
+  test('keeps seeing lb, is asked once, and the numbers never change', async ({ page }) => {
+    const old = workout('old', [{ name: 'Barbell Back Squat', sets: [{ weight: 100, reps: 10, timestamp: 0 }] }]);
+    await page.goto('/');
+    // Recreate storage as it was before this update: history, but no unit chosen
+    await page.evaluate((h) => {
+      localStorage.setItem('plates_history', JSON.stringify(h));
+      localStorage.removeItem('plates_unit');
+    }, [old]);
+    await page.reload();
+
+    await expect(page.locator('#unit-question')).toBeVisible();
+    await expect(page.locator('#kpi-total-volume')).toHaveText('1,000 lb');
+    await page.click('#btn-legacy-kg');
+    await expect(page.locator('#unit-question')).toBeHidden();
+    await expect(page.locator('#kpi-total-volume')).toHaveText('1,000 kg');
+    await page.click('#nav-btn-history');
+    await expect(page.locator('.history-exercise').first()).toContainText('100 kg × 10');
+
+    await page.reload();
+    await expect(page.locator('#unit-question')).toBeHidden();
+    expect(await stored(page, 'plates_history')).toEqual([old]); // nothing rewritten
+  });
+});
+
+test('impossible sets are caught before they are saved', async ({ page }) => {
   await page.goto('/');
-  // Switch to kg
-  await page.click('#unit-btn-kg');
-
-  await startRoutine(page);
-  await page.fill('#set-weight-input', '50');
-  await page.fill('#set-reps-input', '10');
+  await startRoutine(page); // en-US, so lb
+  await page.fill('#set-weight-input', '-50');
   await page.click('#btn-complete-set');
+  await expect(page.locator('.toast')).toHaveText("Weight can't be below zero");
 
-  // Check set row shows kg
-  await expect(page.locator('.set-record-detail')).toContainText('50 kg');
+  await page.fill('#set-weight-input', '60');
+  await page.fill('#set-reps-input', '5000');
+  await page.click('#btn-complete-set');
+  await expect(page.locator('.toast')).toHaveText('Reps go up to 100');
 
-  // Finish workout early
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.click('#btn-finish-workout');
+  let question = '';
+  page.once('dialog', (dialog) => { question = dialog.message(); dialog.dismiss(); });
+  await page.fill('#set-reps-input', '5');
+  await page.fill('#set-weight-input', '6000'); // an extra zero
+  await page.click('#btn-complete-set');
+  expect(question).toContain('6000 lb');
 
-  // Modal celebration shows volume in kg (50 * 10 = 500 kg)
-  await expect(page.locator('#modal-workout-complete')).toBeVisible();
-  await expect(page.locator('#complete-volume')).toContainText('500 kg');
+  const session = await stored(page, 'plates_active_session');
+  expect(session.exercises[0].sets).toHaveLength(0);
+});
 
-  const [saved] = await stored(page, 'plates_history');
-  expect(saved.unit).toBe('kg');
-  expect(saved.totalVolume).toBe(500);
-
-  // Close complete modal to go to history
-  await page.click('#btn-close-complete');
-  await expect(page.locator('.history-card')).toHaveCount(1);
-  await expect(page.locator('.history-date')).toContainText('500 kg volume');
-  await expect(page.locator('.history-exercise')).toContainText('50 kg × 10');
-
-  // Check Dashboard KPI
-  await page.click('#nav-btn-dashboard');
-  await expect(page.locator('#kpi-total-volume')).toContainText('500 kg');
-
-  // Toggle to lbs on dashboard: 500 kg converted to lbs is 1,102 lbs
-  await page.click('#unit-btn-lbs');
-  await expect(page.locator('#kpi-total-volume')).toContainText('1,102 lbs');
-
-  // Check history view now shows in lbs: 50 kg -> 110.2 lbs
-  await page.click('#nav-btn-history');
-  await expect(page.locator('.history-date')).toContainText('1,102 lbs volume');
-  await expect(page.locator('.history-exercise')).toContainText('110.2 lbs × 10');
+test('personal records compare weights across units', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('plates_unit', 'kg'));
+  await seed(page, 'plates_history', [
+    workout('a', [{ name: 'Barbell Back Squat', sets: [{ weight: 200, reps: 3, unit: 'lb', timestamp: 0 }] }], 2),
+    workout('b', [{ name: 'Barbell Back Squat', sets: [{ weight: 100, reps: 3, unit: 'kg', timestamp: 0 }] }], 5),
+  ]);
+  await expect(page.locator('.pr-record-badge').first()).toHaveText('100 kg'); // 200 lb is 90.7 kg
 });

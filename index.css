@@ -211,44 +211,6 @@ body {
   gap: 12px;
 }
 
-/* ── Unit Toggle Segment Control ── */
-.unit-toggle {
-  display: inline-flex;
-  align-items: center;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  padding: 2px;
-  gap: 2px;
-  box-shadow: var(--shadow-sm);
-}
-
-.unit-toggle-btn {
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 5px 11px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  line-height: 1;
-  user-select: none;
-}
-
-.unit-toggle-btn:hover {
-  color: var(--text-primary);
-}
-
-.unit-toggle-btn.active {
-  background: var(--accent-gradient);
-  color: #ffffff;
-  box-shadow: 0 0 10px var(--accent-glow);
-}
-
 .goal-selector {
   display: flex;
   align-items: center;
@@ -1514,6 +1476,95 @@ body {
   margin-bottom: 12px;
 }
 
+/* ── kg / lb switch, next to "Log current set" ── */
+.set-logger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.set-logger-head .set-logger-label {
+  margin-bottom: 0;
+}
+
+.unit-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.unit-btn {
+  min-width: 48px;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all var(--transition-fast);
+}
+
+.unit-btn[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  color: var(--accent-light);
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+
+/* ── What you did last time ── */
+.last-time {
+  margin: 2px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.last-time-set {
+  white-space: nowrap;
+}
+
+.last-time strong {
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
+/* ── One-time kg / lb question on the Dashboard ── */
+.unit-question {
+  margin-bottom: 18px;
+}
+
+.unit-question-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.unit-question-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.unit-question-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.unit-question-actions button {
+  min-height: 44px;
+}
+
 .set-inputs-row {
   display: grid;
   /* minmax(0, …) lets the columns shrink below the number boxes' natural width */
@@ -1527,35 +1578,6 @@ body {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-}
-
-.input-stepper-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.unit-quick-toggle {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  color: var(--accent);
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 2px 7px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  line-height: 1.3;
-}
-
-.unit-quick-toggle:hover {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
-  transform: translateY(-1px);
 }
 
 .input-stepper-card label {
@@ -2404,23 +2426,8 @@ body {
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .header-inner {
-    padding: 10px 14px;
-    gap: 6px;
-  }
-
-  .header-actions {
-    gap: 6px;
-  }
-
-  .unit-toggle-btn {
-    padding: 4px 8px;
-    font-size: 10px;
-  }
-
-  .goal-selector select {
-    max-width: 120px;
-    font-size: 11px;
-    padding: 6px 22px 6px 8px;
+    padding: 12px 16px;
+    gap: 8px;
   }
 
   .logo-text {

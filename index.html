@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=13" />
+  <link rel="stylesheet" href="index.css?v=14" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -153,6 +153,16 @@
         <button id="btn-dash-resume" class="btn-primary btn-small">Resume ▶</button>
       </div>
 
+      <!-- Asked once, if sets were saved before kg / lb existed -->
+      <div id="unit-question" class="dashboard-card unit-question" hidden>
+        <div class="unit-question-title">Were your weights in kg?</div>
+        <p class="unit-question-text">Until now, Plates labelled every weight lb. If you were entering kilograms, choose kg. Your past sets keep their numbers either way.</p>
+        <div class="unit-question-actions">
+          <button type="button" id="btn-legacy-kg" class="btn-primary btn-small">Yes, kg</button>
+          <button type="button" id="btn-legacy-lb" class="btn-secondary btn-small">No, lb</button>
+        </div>
+      </div>
+
       <!-- 7-Day Consistency Tracker -->
       <div class="dashboard-card weekly-streak-card">
         <div class="streak-card-header">
@@ -181,8 +191,8 @@
               <path d="M2 12h20"></path><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M4 10v4"></path><path d="M20 10v4"></path>
             </svg>
           </div>
-          <div class="kpi-value" id="kpi-total-volume">0 lbs</div>
-          <div class="kpi-subtext" id="kpi-volume-week">+0 lbs this week</div>
+          <div class="kpi-value" id="kpi-total-volume">0</div>
+          <div class="kpi-subtext" id="kpi-volume-week">+0 this week</div>
         </div>
 
         <div class="kpi-card">
@@ -398,6 +408,9 @@
             <div class="active-set-badge" id="active-set-counter">Set 1 of 3</div>
           </div>
 
+          <!-- What you did last time on this exercise -->
+          <div class="last-time" id="last-time" hidden></div>
+
           <!-- Set Progress Indicator Dots -->
           <div class="set-indicator-dots" id="set-indicator-dots">
             <!-- dots injected by JS -->
@@ -428,14 +441,20 @@
 
           <!-- Direct Set Logger Form -->
           <div class="set-logger-box" id="set-logger-box">
-            <div class="set-logger-label">LOG CURRENT SET:</div>
+            <div class="set-logger-head">
+              <div class="set-logger-label">LOG CURRENT SET:</div>
+              <div class="unit-toggle" role="group" aria-label="Weight unit">
+                <button type="button" class="unit-btn" data-unit="kg" aria-pressed="false">kg</button>
+                <button type="button" class="unit-btn" data-unit="lb" aria-pressed="false">lb</button>
+              </div>
+            </div>
             <div class="set-inputs-row">
               <!-- Weight input with steppers -->
               <div class="input-stepper-card">
-                <label for="set-weight-input">Weight (lbs)</label>
+                <label for="set-weight-input" id="set-weight-label">Weight (lb)</label>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn" id="btn-weight-minus">-5</button>
-                  <input type="number" id="set-weight-input" placeholder="0" min="0" step="2.5" />
+                  <input type="number" id="set-weight-input" placeholder="0" min="0" step="any" inputmode="decimal" />
                   <button type="button" class="stepper-btn" id="btn-weight-plus">+5</button>
                   <button type="button" class="stepper-btn stepper-btn-lg" id="btn-weight-plus10">+10</button>
                 </div>
@@ -446,7 +465,7 @@
                 <label for="set-reps-input">Reps</label>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn" id="btn-reps-minus">-1</button>
-                  <input type="number" id="set-reps-input" placeholder="0" min="1" max="100" />
+                  <input type="number" id="set-reps-input" placeholder="0" min="1" max="100" inputmode="numeric" />
                   <button type="button" class="stepper-btn" id="btn-reps-plus">+1</button>
                 </div>
               </div>
@@ -577,7 +596,7 @@
           <div class="stat-label">Duration</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" id="complete-volume">0 lbs</div>
+          <div class="stat-value" id="complete-volume">0</div>
           <div class="stat-label">Volume Lifted</div>
         </div>
         <div class="stat-card">
@@ -603,7 +622,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});

@@ -1476,6 +1476,95 @@ body {
   margin-bottom: 12px;
 }
 
+/* ── kg / lb switch, next to "Log current set" ── */
+.set-logger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.set-logger-head .set-logger-label {
+  margin-bottom: 0;
+}
+
+.unit-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.unit-btn {
+  min-width: 48px;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all var(--transition-fast);
+}
+
+.unit-btn[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  color: var(--accent-light);
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+
+/* ── What you did last time ── */
+.last-time {
+  margin: 2px 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.last-time-set {
+  white-space: nowrap;
+}
+
+.last-time strong {
+  color: var(--accent-light);
+  font-weight: 700;
+}
+
+/* ── One-time kg / lb question on the Dashboard ── */
+.unit-question {
+  margin-bottom: 18px;
+}
+
+.unit-question-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.unit-question-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.unit-question-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.unit-question-actions button {
+  min-height: 44px;
+}
+
 .set-inputs-row {
   display: grid;
   /* minmax(0, …) lets the columns shrink below the number boxes' natural width */

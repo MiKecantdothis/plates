@@ -8,6 +8,9 @@
   // ── Constants & Configuration ──
   const MAX_ROUTINES = 12;
 
+  // A workout still open this long after its last set was probably forgotten.
+  const FORGOTTEN_AFTER_MS = 2 * 60 * 60 * 1000;
+
   // Rest periods per training goal (in seconds)
   const REST_CONFIG = {
     strength:     { label: 'Build Strength',  rest: 180, tip: '3 min rest for complete ATP recovery' },
@@ -77,7 +80,6 @@
     activeSession.currentExerciseIndex = 0;
   }
   let sessionTimerInterval = null;
-  let restTimerInterval = null;
 
   // ── DOM References ──
   const $ = (sel) => document.querySelector(sel);
@@ -224,16 +226,20 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
+  // Escape text before it goes into HTML. Quotes need escaping too: names also
+  // land inside attributes like value="…", where a stray " ends the attribute.
+  const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   function esc(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
+    return String(str ?? '').replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
   }
 
   function fmtTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const total = Math.max(0, Math.floor(sec || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const mmss = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return h > 0 ? `${h}:${mmss}` : mmss;
   }
 
   function fmtRupees(amount) {
@@ -241,16 +247,35 @@
     return Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
 
-  function toast(msg) {
+  // A short message at the bottom of the screen. Pass { label, onClick } to add
+  // a button to it, such as Undo after a delete.
+  let toastTimer = null;
+  function toast(msg, action) {
     let el = document.querySelector('.toast');
     if (!el) {
       el = document.createElement('div');
       el.className = 'toast';
       document.body.appendChild(el);
     }
+    const hide = () => el.classList.remove('show', 'has-action');
     el.textContent = msg;
+    if (action) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'toast-action';
+      btn.textContent = action.label;
+      btn.addEventListener('click', () => {
+        clearTimeout(toastTimer);
+        hide();
+        action.onClick();
+      });
+      el.appendChild(btn);
+    }
+    el.classList.toggle('has-action', !!action);
     el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2400);
+    // A new message replaces the old one, so cancel the old one's timer too.
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hide, action ? 6000 : 2400);
   }
 
   // Synthesised Web Audio Gym Chimes (no external files needed, 100% offline!)
@@ -353,7 +378,7 @@
 
   function updateBannerVisibility() {
     const isLive = !!(activeSession && activeSession.exercises && activeSession.exercises.length > 0);
-    const elapsedStr = isLive ? fmtTime(activeSession.elapsedSeconds) : '00:00';
+    const elapsedStr = isLive ? fmtTime(sessionElapsedSeconds()) : '00:00';
 
     if (sessionBanner) {
       sessionBanner.hidden = !isLive;
@@ -447,17 +472,17 @@
     }
 
     routinesGrid.innerHTML = routines.map(r => `
-      <div class="routine-card" data-id="${r.id}">
+      <div class="routine-card" data-id="${esc(r.id)}">
         <div class="routine-card-header">
           <span class="routine-card-title">${esc(r.name)}</span>
           <div class="routine-card-actions">
-            <button class="btn-icon" data-action="edit" data-id="${r.id}" title="Edit routine">
+            <button class="btn-icon" data-action="edit" data-id="${esc(r.id)}" title="Edit routine">
               <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <button class="btn-icon danger" data-action="delete" data-id="${r.id}" title="Delete routine">
+            <button class="btn-icon danger" data-action="delete" data-id="${esc(r.id)}" title="Delete routine">
               <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -473,8 +498,8 @@
 
         <div class="routine-card-actions-row">
           <span class="routine-count">${r.exercises.length} exercise${r.exercises.length !== 1 ? 's' : ''}</span>
-          <button class="btn-primary btn-start-workout" data-action="start" data-id="${r.id}">
-            Start Workout ▶
+          <button class="btn-primary btn-start-workout" data-action="start" data-id="${esc(r.id)}">
+            ${activeSession && activeSession.routineId === r.id ? 'Resume ▶' : 'Start Workout ▶'}
           </button>
         </div>
       </div>
@@ -543,9 +568,11 @@
     const row = document.createElement('div');
     row.className = 'exercise-row';
     row.innerHTML = `
-      <input type="text" placeholder="Exercise name (e.g. Incline Bench Press)" value="${esc(value)}" maxlength="50" />
+      <input type="text" placeholder="Exercise name (e.g. Incline Bench Press)" maxlength="50" />
       <button type="button" class="btn-icon danger" title="Remove">✕</button>
     `;
+    // Set the name as a value, not as HTML, so a name like 3" Deficit Deadlift stays whole.
+    row.querySelector('input').value = value;
     row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
     exerciseList.appendChild(row);
   }
@@ -599,7 +626,12 @@
     if (!routine) return;
 
     // Check if an existing session is in progress
-    if (activeSession && activeSession.routineId !== routineId) {
+    if (activeSession) {
+      // Same routine: go back to it. Starting it again would erase the logged sets.
+      if (activeSession.routineId === routineId) {
+        switchTab('active');
+        return;
+      }
       if (!confirm(`You already have an active workout for "${activeSession.routineName}". Start a new one instead?`)) {
         switchTab('active');
         return;
@@ -633,29 +665,72 @@
     toast(`Workout started: ${routine.name}`);
   }
 
+  // ── Timers ──
+  // Phones pause web pages while the screen is locked, so counting ticks loses
+  // time. Instead the session stores when the workout started and when the
+  // rest ends, and the display is worked out from the clock.
+  function sessionElapsedSeconds() {
+    if (!activeSession) return 0;
+    return Math.max(0, Math.floor((Date.now() - activeSession.startTime) / 1000));
+  }
+
+  function restRemainingSeconds() {
+    const rest = activeSession && activeSession.rest;
+    if (!rest || !rest.active) return 0;
+    return Math.max(0, Math.ceil((rest.endsAt - Date.now()) / 1000));
+  }
+
+  function tick() {
+    if (!activeSession) return;
+    activeSession.elapsedSeconds = sessionElapsedSeconds();
+    const elapsedStr = fmtTime(activeSession.elapsedSeconds);
+    if (activeElapsedText) activeElapsedText.textContent = elapsedStr;
+    if (bannerElapsedText) bannerElapsedText.textContent = `${elapsedStr} elapsed`;
+    if (dashBannerElapsedText) dashBannerElapsedText.textContent = `${elapsedStr} elapsed`;
+
+    if (activeSession.rest && activeSession.rest.active) {
+      const remain = restRemainingSeconds();
+      activeSession.rest.remain = remain;
+      restDigits.textContent = fmtTime(remain);
+      if (remain <= 0) finishRest();
+    }
+  }
+
   function startSessionTimer() {
     clearInterval(sessionTimerInterval);
-    sessionTimerInterval = setInterval(() => {
-      if (!activeSession) return;
-      activeSession.elapsedSeconds++;
-      if (activeElapsedText) {
-        activeElapsedText.textContent = fmtTime(activeSession.elapsedSeconds);
-      } else {
-        activeElapsedTimer.textContent = fmtTime(activeSession.elapsedSeconds);
+    sessionTimerInterval = setInterval(tick, 500);
+    tick();
+  }
+
+  // Catch up as soon as the phone is unlocked or the app is back on screen.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    tick();
+    if (activeSession && activeSession.rest && activeSession.rest.active) keepScreenOn(true);
+  });
+
+  // Keep the screen on during a rest, so auto-lock doesn't cut off the
+  // countdown and its chime. Browsers without Wake Lock skip this.
+  let wakeLock = null;
+  let wantScreenOn = false;
+  async function keepScreenOn(on) {
+    wantScreenOn = on;
+    if (!('wakeLock' in navigator)) return;
+    try {
+      if (on && !wakeLock && document.visibilityState === 'visible') {
+        const lock = await navigator.wakeLock.request('screen');
+        // The rest may have ended while we waited, or another request won.
+        if (!wantScreenOn || wakeLock) { lock.release(); return; }
+        wakeLock = lock;
+        lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+      } else if (!on && wakeLock) {
+        const lock = wakeLock;
+        wakeLock = null;
+        await lock.release();
       }
-      if (bannerElapsedText) {
-        bannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
-      } else {
-        bannerElapsed.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
-      }
-      if (dashBannerElapsedText) {
-        dashBannerElapsedText.textContent = `${fmtTime(activeSession.elapsedSeconds)} elapsed`;
-      }
-      // Auto-save every 15s
-      if (activeSession.elapsedSeconds % 15 === 0) {
-        saveJSON('plates_active_session', activeSession);
-      }
-    }, 1000);
+    } catch {
+      // The browser refused (for example, the page is hidden). Timers work without it.
+    }
   }
 
   function renderActiveWorkoutView() {
@@ -681,6 +756,7 @@
 
     // Routine Badge & Elapsed Timer
     activeRoutineBadge.textContent = activeSession.routineName;
+    activeSession.elapsedSeconds = sessionElapsedSeconds();
     if (activeElapsedText) {
       activeElapsedText.textContent = fmtTime(activeSession.elapsedSeconds);
     } else {
@@ -751,7 +827,7 @@
       exerciseSetsList.innerHTML = currentEx.sets.map((s, idx) => `
         <div class="set-record-row">
           <span class="set-record-num">Set ${idx + 1}</span>
-          <span class="set-record-detail"><strong>${s.weight} lbs</strong> × ${s.reps} reps</span>
+          <span class="set-record-detail"><strong>${esc(s.weight)} lbs</strong> × ${esc(s.reps)} reps</span>
           <div style="display:flex; align-items:center; gap:8px">
             <span class="set-record-check">✓</span>
             <button class="set-record-del" data-set-idx="${idx}" title="Delete set">✕</button>
@@ -762,9 +838,19 @@
       exerciseSetsList.querySelectorAll('.set-record-del').forEach(delBtn => {
         delBtn.addEventListener('click', () => {
           const sIdx = parseInt(delBtn.dataset.setIdx, 10);
-          currentEx.sets.splice(sIdx, 1);
+          const [removed] = currentEx.sets.splice(sIdx, 1);
           saveJSON('plates_active_session', activeSession);
           renderActiveWorkoutView();
+          toast(`Set ${sIdx + 1} deleted`, {
+            label: 'Undo',
+            onClick: () => {
+              // Only if this workout is still the one in progress
+              if (!activeSession || !activeSession.exercises.includes(currentEx)) return;
+              currentEx.sets.splice(sIdx, 0, removed);
+              saveJSON('plates_active_session', activeSession);
+              renderActiveWorkoutView();
+            },
+          });
         });
       });
     }
@@ -858,79 +944,80 @@
 
     activeSession.rest = {
       active: true,
+      endsAt: Date.now() + seconds * 1000,
       remain: seconds,
       total: seconds,
     };
 
     showRestPanel();
+    keepScreenOn(true);
+  }
 
-    clearInterval(restTimerInterval);
-    restTimerInterval = setInterval(() => {
-      if (!activeSession || !activeSession.rest || !activeSession.rest.active) {
-        clearInterval(restTimerInterval);
-        return;
-      }
+  // tick() calls this when the countdown reaches zero.
+  function finishRest() {
+    const rest = activeSession.rest;
+    // Chime only if the rest ended just now, with the app on screen. If it ran
+    // out while the phone was locked, a chime on unlock would only be late.
+    const endedJustNow = document.visibilityState === 'visible' && Date.now() - rest.endsAt < 2000;
+    rest.active = false;
+    activeRestPanel.hidden = true;
+    keepScreenOn(false);
+    saveJSON('plates_active_session', activeSession);
 
-      activeSession.rest.remain--;
-      restDigits.textContent = fmtTime(activeSession.rest.remain);
+    if (endedJustNow) {
+      // Completion chime & haptic
+      playRestEndChime();
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+    toast('Rest complete — Time to lift!');
 
-      if (activeSession.rest.remain <= 0) {
-        clearInterval(restTimerInterval);
-        activeSession.rest.active = false;
-        activeRestPanel.hidden = true;
+    // Check if all sets for this exercise are done
+    const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
+    if (currentEx && currentEx.sets.length >= currentEx.targetSets) {
+      if (activeSession.currentExerciseIndex < activeSession.exercises.length - 1) {
+        // Auto advance hint
+        toast(`Great work on ${currentEx.name}! Moving to next exercise.`);
+        activeSession.currentExerciseIndex++;
         saveJSON('plates_active_session', activeSession);
-
-        // Completion chime & haptic
-        playRestEndChime();
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        toast('Rest complete — Time to lift!');
-
-        // Check if all sets for this exercise are done
-        const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
-        if (currentEx && currentEx.sets.length >= currentEx.targetSets) {
-          if (activeSession.currentExerciseIndex < activeSession.exercises.length - 1) {
-            // Auto advance hint
-            toast(`Great work on ${currentEx.name}! Moving to next exercise.`);
-            activeSession.currentExerciseIndex++;
-            saveJSON('plates_active_session', activeSession);
-            renderActiveWorkoutView();
-          }
-        }
+        renderActiveWorkoutView();
       }
-    }, 1000);
+    }
   }
 
   function showRestPanel() {
     activeRestPanel.hidden = false;
     const cfg = REST_CONFIG[currentGoal] || REST_CONFIG.strength;
     restGoalLabel.textContent = `${cfg.label} (${cfg.rest}s)`;
-    restDigits.textContent = fmtTime(activeSession.rest.remain);
+    restDigits.textContent = fmtTime(restRemainingSeconds());
 
     const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
     const nextSetNum = currentEx ? currentEx.sets.length + 1 : 1;
     restNextHint.textContent = `Up Next: Set ${nextSetNum} of ${currentEx ? currentEx.name : ''}`;
   }
 
+  // The buttons move the rest's end time, and the change is saved.
   btnRestPlus.addEventListener('click', () => {
     if (activeSession && activeSession.rest && activeSession.rest.active) {
-      activeSession.rest.remain += 30;
-      restDigits.textContent = fmtTime(activeSession.rest.remain);
+      activeSession.rest.endsAt += 30 * 1000;
+      saveJSON('plates_active_session', activeSession);
+      tick();
       toast('+30s rest added');
     }
   });
 
   btnRestMinus.addEventListener('click', () => {
     if (activeSession && activeSession.rest && activeSession.rest.active) {
-      activeSession.rest.remain = Math.max(0, activeSession.rest.remain - 15);
-      restDigits.textContent = fmtTime(activeSession.rest.remain);
+      activeSession.rest.endsAt = Math.max(Date.now(), activeSession.rest.endsAt - 15 * 1000);
+      saveJSON('plates_active_session', activeSession);
+      tick();
     }
   });
 
   btnRestSkip.addEventListener('click', () => {
     if (activeSession && activeSession.rest) {
       activeSession.rest.active = false;
-      clearInterval(restTimerInterval);
       activeRestPanel.hidden = true;
+      keepScreenOn(false);
       saveJSON('plates_active_session', activeSession);
       toast('Rest skipped — let\'s lift!');
       setRepsInput.focus();
@@ -979,7 +1066,7 @@
 
   function discardSession() {
     clearInterval(sessionTimerInterval);
-    clearInterval(restTimerInterval);
+    keepScreenOn(false);
     activeSession = null;
     localStorage.removeItem('plates_active_session');
     updateBannerVisibility();
@@ -1022,13 +1109,25 @@
       return;
     }
 
+    // Finishing can't be undone, so ask first if planned sets are still open.
+    const setsLeft = activeSession.exercises.reduce((n, ex) => n + Math.max(0, ex.targetSets - ex.sets.length), 0);
+    if (setsLeft > 0 && !confirm(`You still have ${setsLeft} planned set${setsLeft === 1 ? '' : 's'} left. Finish the workout anyway?`)) {
+      return;
+    }
+
+    // When did the workout end? If it sat open long after the last set, it was
+    // probably forgotten, so end it at the last set rather than now.
+    const lastSetAt = Math.max(...activeSession.exercises.flatMap(ex => ex.sets.map(s => s.timestamp || 0)));
+    const endedAt = Date.now() - lastSetAt > FORGOTTEN_AFTER_MS ? lastSetAt : Date.now();
+    const durationSeconds = Math.max(0, Math.round((endedAt - activeSession.startTime) / 1000));
+
     // Create history entry
     const historyEntry = {
       id: uid(),
       routineId: activeSession.routineId,
       routineName: activeSession.routineName,
-      date: new Date().toISOString(),
-      durationSeconds: activeSession.elapsedSeconds,
+      date: new Date(endedAt).toISOString(),
+      durationSeconds,
       totalVolume,
       totalSets,
       goal: currentGoal,
@@ -1039,7 +1138,7 @@
     saveJSON('plates_history', history);
 
     // Populate Celebration Modal
-    const durationMin = Math.round(activeSession.elapsedSeconds / 60);
+    const durationMin = Math.round(durationSeconds / 60);
     completeRoutineName.textContent = activeSession.routineName;
     completeDuration.textContent = `${durationMin}m`;
     completeVolume.textContent = `${totalVolume.toLocaleString()} lbs`;
@@ -1048,7 +1147,7 @@
     completeExercises.innerHTML = loggedExercises.map(ex => `
       <div class="completed-summary-item">
         <strong>${esc(ex.name)}</strong>
-        <span>${ex.sets.length} sets (${ex.sets.map(s => `${s.weight}×${s.reps}`).join(', ')})</span>
+        <span>${ex.sets.length} sets (${ex.sets.map(s => `${esc(s.weight)}×${esc(s.reps)}`).join(', ')})</span>
       </div>
     `).join('');
 
@@ -1097,13 +1196,13 @@
 
       return `
         <div class="history-card">
-          <div class="history-date">${dateStr} · ${timeStr}${durationStr}${volumeStr}</div>
+          <div class="history-date">${esc(dateStr + ' · ' + timeStr + durationStr + volumeStr)}</div>
           <div class="history-routine-name">${esc(entry.routineName)}</div>
           <div class="history-exercises">
             ${entry.exercises.map(ex => `
               <div class="history-exercise">
                 <span class="history-exercise-name">${esc(ex.name)}</span>
-                <span>${ex.sets.map(s => `${s.weight} lbs × ${s.reps}`).join(' · ')}</span>
+                <span>${ex.sets.map(s => `${esc(s.weight)} lbs × ${esc(s.reps)}`).join(' · ')}</span>
               </div>
             `).join('')}
           </div>
@@ -1112,12 +1211,27 @@
   }
 
   btnClearHistory.addEventListener('click', () => {
-    if (!confirm('Clear all workout history? This cannot be undone.')) return;
+    if (history.length === 0) {
+      toast('No workouts to clear');
+      return;
+    }
+    const count = history.length;
+    if (!confirm(`Delete all ${count} logged workout${count === 1 ? '' : 's'}? You can undo this for a few seconds.`)) return;
+    const removed = history;
     history = [];
     saveJSON('plates_history', history);
     renderHistory();
     renderDashboard();
-    toast('History cleared');
+    toast('History cleared', {
+      label: 'Undo',
+      onClick: () => {
+        history = history.concat(removed);
+        saveJSON('plates_history', history);
+        renderHistory();
+        renderDashboard();
+        toast('History restored');
+      },
+    });
   });
 
   // ══════════════════════════════════════════
@@ -1171,13 +1285,13 @@
         <div class="shopping-category-group">
           <h3>${CATEGORY_LABELS[cat] || cat}</h3>
           ${groups[cat].map(item => `
-            <div class="shopping-item ${item.checked ? 'checked' : ''}" data-id="${item.id}">
-              <div class="shopping-checkbox ${item.checked ? 'checked' : ''}" data-id="${item.id}"></div>
+            <div class="shopping-item ${item.checked ? 'checked' : ''}" data-id="${esc(item.id)}">
+              <div class="shopping-checkbox ${item.checked ? 'checked' : ''}" data-id="${esc(item.id)}"></div>
               <span class="shopping-item-name">${esc(item.name)}</span>
               ${item.price !== null && item.price !== undefined && !isNaN(item.price) && item.price > 0 ? `
                 <span class="shopping-item-price" title="Price">₹${fmtRupees(item.price)}</span>
               ` : ''}
-              <button class="shopping-item-delete" data-id="${item.id}" title="Remove item">✕</button>
+              <button class="shopping-item-delete" data-id="${esc(item.id)}" title="Remove item">✕</button>
             </div>
           `).join('')}
         </div>
@@ -1728,7 +1842,7 @@
                 <div class="recent-session-date">${dateStr}</div>
               </div>
               <div class="recent-session-meta">
-                ${durStr ? `⏱️ ${durStr}` : ''} ${volStr ? ` · 🏋️ ${volStr}` : ''}
+                ${durStr ? `⏱️ ${durStr}` : ''} ${volStr ? ` · 🏋️ ${esc(volStr)}` : ''}
               </div>
               <div class="recent-session-exercises">
                 ${esc(exercisesStr)}${h.exercises && h.exercises.length > 3 ? ` +${h.exercises.length - 3} more` : ''}
@@ -1749,10 +1863,20 @@
   renderHistory();
   renderShopping();
 
-  // If a session was already in progress, resume timer and state
+  // If a session was already in progress, pick it up where it is now
   if (activeSession) {
+    // Sessions saved by older versions have no rest end time yet
+    if (typeof activeSession.startTime !== 'number') {
+      activeSession.startTime = Date.now() - (activeSession.elapsedSeconds || 0) * 1000;
+    }
+    const rest = activeSession.rest;
+    if (rest && rest.active && typeof rest.endsAt !== 'number') {
+      rest.endsAt = Date.now() + (rest.remain || 0) * 1000;
+    }
     startSessionTimer();
-    renderActiveWorkoutView();
+    // Reopening the app mid-workout should land on the workout, not the dashboard
+    switchTab('active');
+    if (activeSession && activeSession.rest && activeSession.rest.active) keepScreenOn(true);
   }
 
 })();

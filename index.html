@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=13" />
+  <link rel="stylesheet" href="index.css?v=14" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -41,6 +41,10 @@
         <span class="logo-text">PLA<span class="accent">TES</span></span>
       </div>
       <div class="header-actions">
+        <div class="unit-toggle" id="unit-toggle" role="group" aria-label="Weight unit toggle" title="Switch between lbs and kg">
+          <button type="button" class="unit-toggle-btn active" data-unit="lbs" id="unit-btn-lbs" aria-pressed="true">LBS</button>
+          <button type="button" class="unit-toggle-btn" data-unit="kg" id="unit-btn-kg" aria-pressed="false">KG</button>
+        </div>
         <div class="goal-selector">
           <label for="goal-select">Goal</label>
           <select id="goal-select">
@@ -432,7 +436,12 @@
             <div class="set-inputs-row">
               <!-- Weight input with steppers -->
               <div class="input-stepper-card">
-                <label for="set-weight-input">Weight (lbs)</label>
+                <div class="input-stepper-header">
+                  <label for="set-weight-input">Weight (<span id="weight-unit-label">lbs</span>)</label>
+                  <button type="button" class="unit-quick-toggle" id="unit-quick-toggle" title="Switch weight unit between lbs and kg" aria-label="Switch weight unit">
+                    ⇄ <span id="quick-toggle-text">kg</span>
+                  </button>
+                </div>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn" id="btn-weight-minus">-5</button>
                   <input type="number" id="set-weight-input" placeholder="0" min="0" step="2.5" />
@@ -603,7 +612,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});

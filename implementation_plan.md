@@ -69,7 +69,13 @@ Four luxury glassmorphism cards with subtle electric-blue accent borders:
 
 ## 4. Edge Cases & Handling
 - **New User / Empty State**: Friendly zero-state prompt ("Log your first workout to unlock training stats & PR tracking") rather than blank zeroes.
-- **Unit Conversions**: Ensure calculation accounts for user preferences (lbs vs kg).
+- **Unit Conversions (Implemented & Verified)**:
+  - Global `LBS | KG` segment toggle pill in the header with persistent `localStorage` preference.
+  - Contextual quick-toggle `⇄ kg / lbs` in the active set logger.
+  - Dynamic weight steppers (`-5 / +5 / +10` in lbs vs `-2.5 / +2.5 / +5` in kg).
+  - Accurate conversion on active inputs and sets (`1 lb = 0.45359237 kg`).
+  - Seamless unit-aware volume computation and conversion for Dashboard KPIs, Volume Chart, and History entries.
+  - Consistent PR peak evaluation across mixed historical workout units.
 - **Performance**: Compute stats efficiently in a single pass over the `history` array to avoid UI lag.
 
 ---

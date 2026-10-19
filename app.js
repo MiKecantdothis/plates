@@ -63,6 +63,7 @@
   let shoppingList = loadJSON('plates_shopping', []);
   let currentGoal  = localStorage.getItem('plates_goal') || 'strength';
   let currentTheme = localStorage.getItem('plates_theme') || 'dark';
+  let currentUnit  = localStorage.getItem('plates_unit') || 'lbs';
   let editingRoutineId = null;
 
   // Chart.js instances & active filters
@@ -89,6 +90,8 @@
   const goalSelect         = $('#goal-select');
   const btnThemeToggle     = $('#theme-toggle');
   const metaThemeColor     = $('#meta-theme-color');
+  const unitBtnLbs         = $('#unit-btn-lbs');
+  const unitBtnKg          = $('#unit-btn-kg');
 
   // Navigation
   const navBtnDashboard       = $('#nav-btn-dashboard');
@@ -163,6 +166,9 @@
 
   // Set Logger Form
   const setWeightInput     = $('#set-weight-input');
+  const weightUnitLabel    = $('#weight-unit-label');
+  const unitQuickToggle    = $('#unit-quick-toggle');
+  const quickToggleText    = $('#quick-toggle-text');
   const setRepsInput       = $('#set-reps-input');
   const btnWeightMinus     = $('#btn-weight-minus');
   const btnWeightPlus      = $('#btn-weight-plus');
@@ -245,6 +251,36 @@
   function fmtRupees(amount) {
     if (amount === null || amount === undefined || isNaN(amount)) return '0';
     return Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
+  // ── Weight Unit Conversion Helpers ──
+  const LBS_IN_KG = 0.45359237;
+  const KG_IN_LBS = 2.20462262;
+
+  function roundWeight(w) {
+    return Math.round(Number(w || 0) * 10) / 10;
+  }
+
+  function convertWeight(weight, fromUnit, toUnit) {
+    const val = Number(weight);
+    if (isNaN(val) || val <= 0) return 0;
+    const from = fromUnit || 'lbs';
+    const to = toUnit || 'lbs';
+    if (from === to) return roundWeight(val);
+    if (from === 'lbs' && to === 'kg') return roundWeight(val * LBS_IN_KG);
+    if (from === 'kg' && to === 'lbs') return roundWeight(val * KG_IN_LBS);
+    return roundWeight(val);
+  }
+
+  function convertVolume(vol, fromUnit, toUnit) {
+    const val = Number(vol);
+    if (isNaN(val) || val <= 0) return 0;
+    const from = fromUnit || 'lbs';
+    const to = toUnit || 'lbs';
+    if (from === to) return Math.round(val);
+    if (from === 'lbs' && to === 'kg') return Math.round(val * LBS_IN_KG);
+    if (from === 'kg' && to === 'lbs') return Math.round(val * KG_IN_LBS);
+    return Math.round(val);
   }
 
   // A short message at the bottom of the screen. Pass { label, onClick } to add
@@ -429,6 +465,81 @@
       const next = currentTheme === 'light' ? 'dark' : 'light';
       applyTheme(next);
       toast(next === 'light' ? 'Light mode active' : 'Dark mode active');
+    });
+  }
+
+  // ── Weight Unit Management (LBS <-> KG) ──
+  function setWeightUnit(newUnit, userInitiated = true) {
+    if (newUnit !== 'lbs' && newUnit !== 'kg') return;
+    const oldUnit = currentUnit;
+    currentUnit = newUnit;
+    localStorage.setItem('plates_unit', currentUnit);
+
+    if (unitBtnLbs && unitBtnKg) {
+      unitBtnLbs.classList.toggle('active', currentUnit === 'lbs');
+      unitBtnLbs.setAttribute('aria-pressed', currentUnit === 'lbs');
+      unitBtnKg.classList.toggle('active', currentUnit === 'kg');
+      unitBtnKg.setAttribute('aria-pressed', currentUnit === 'kg');
+    }
+
+    if (weightUnitLabel) weightUnitLabel.textContent = currentUnit;
+    if (quickToggleText) quickToggleText.textContent = currentUnit === 'kg' ? 'lbs' : 'kg';
+
+    if (currentUnit === 'kg') {
+      if (btnWeightMinus) btnWeightMinus.textContent = '-2.5';
+      if (btnWeightPlus) btnWeightPlus.textContent = '+2.5';
+      if (btnWeightPlus10) btnWeightPlus10.textContent = '+5';
+      if (setWeightInput) setWeightInput.step = '0.5';
+    } else {
+      if (btnWeightMinus) btnWeightMinus.textContent = '-5';
+      if (btnWeightPlus) btnWeightPlus.textContent = '+5';
+      if (btnWeightPlus10) btnWeightPlus10.textContent = '+10';
+      if (setWeightInput) setWeightInput.step = '2.5';
+    }
+
+    // Convert input field value if present and user initiated
+    if (oldUnit !== newUnit && setWeightInput && setWeightInput.value) {
+      const currentVal = parseFloat(setWeightInput.value);
+      if (!isNaN(currentVal) && currentVal > 0) {
+        setWeightInput.value = convertWeight(currentVal, oldUnit, newUnit);
+      }
+    }
+
+    // If an active session exists, convert logged sets and session unit
+    if (activeSession && activeSession.exercises) {
+      if (oldUnit !== newUnit) {
+        activeSession.exercises.forEach(ex => {
+          if (ex.sets) {
+            ex.sets.forEach(s => {
+              s.weight = convertWeight(s.weight, oldUnit, newUnit);
+            });
+          }
+        });
+      }
+      activeSession.unit = currentUnit;
+      saveJSON('plates_active_session', activeSession);
+      if (activeWorkoutView && !activeWorkoutView.hidden) {
+        renderActiveWorkoutView();
+      }
+    }
+
+    renderDashboard();
+    renderHistory();
+
+    if (userInitiated && oldUnit !== newUnit) {
+      toast(`Weight unit switched to ${currentUnit === 'kg' ? 'Kilograms (kg)' : 'Pounds (lbs)'}`);
+    }
+  }
+
+  if (unitBtnLbs) {
+    unitBtnLbs.addEventListener('click', () => setWeightUnit('lbs'));
+  }
+  if (unitBtnKg) {
+    unitBtnKg.addEventListener('click', () => setWeightUnit('kg'));
+  }
+  if (unitQuickToggle) {
+    unitQuickToggle.addEventListener('click', () => {
+      setWeightUnit(currentUnit === 'kg' ? 'lbs' : 'kg');
     });
   }
 
@@ -816,7 +927,7 @@
       setRepsInput.value = prevSet.reps;
     } else {
       // Look for previous exercise weight or default
-      if (!setWeightInput.value) setWeightInput.value = 135;
+      if (!setWeightInput.value) setWeightInput.value = currentUnit === 'kg' ? 60 : 135;
       if (!setRepsInput.value) setRepsInput.value = 10;
     }
 
@@ -827,7 +938,7 @@
       exerciseSetsList.innerHTML = currentEx.sets.map((s, idx) => `
         <div class="set-record-row">
           <span class="set-record-num">Set ${idx + 1}</span>
-          <span class="set-record-detail"><strong>${esc(s.weight)} lbs</strong> × ${esc(s.reps)} reps</span>
+          <span class="set-record-detail"><strong>${esc(s.weight)} ${currentUnit}</strong> × ${esc(s.reps)} reps</span>
           <div style="display:flex; align-items:center; gap:8px">
             <span class="set-record-check">✓</span>
             <button class="set-record-del" data-set-idx="${idx}" title="Delete set">✕</button>
@@ -871,18 +982,24 @@
 
   // ── Set Logger Stepper Adjustments ──
   btnWeightMinus.addEventListener('click', () => {
-    const val = Math.max(0, (parseFloat(setWeightInput.value) || 0) - 5);
-    setWeightInput.value = val;
+    const step = currentUnit === 'kg' ? 2.5 : 5;
+    const currentVal = parseFloat(setWeightInput.value) || 0;
+    const val = Math.max(0, currentVal - step);
+    setWeightInput.value = roundWeight(val);
   });
 
   btnWeightPlus.addEventListener('click', () => {
-    const val = (parseFloat(setWeightInput.value) || 0) + 5;
-    setWeightInput.value = val;
+    const step = currentUnit === 'kg' ? 2.5 : 5;
+    const currentVal = parseFloat(setWeightInput.value) || 0;
+    const val = currentVal + step;
+    setWeightInput.value = roundWeight(val);
   });
 
   btnWeightPlus10.addEventListener('click', () => {
-    const val = (parseFloat(setWeightInput.value) || 0) + 10;
-    setWeightInput.value = val;
+    const step = currentUnit === 'kg' ? 5 : 10;
+    const currentVal = parseFloat(setWeightInput.value) || 0;
+    const val = currentVal + step;
+    setWeightInput.value = roundWeight(val);
   });
 
   btnRepsMinus.addEventListener('click', () => {
@@ -925,7 +1042,7 @@
     playSetChime();
     if (navigator.vibrate) navigator.vibrate([80]);
 
-    toast(`Set ${currentEx.sets.length} logged: ${weight} lbs × ${reps} reps!`);
+    toast(`Set ${currentEx.sets.length} logged: ${weight} ${currentUnit} × ${reps} reps!`);
 
     // Determine recommended rest time for current goal
     const goalCfg = REST_CONFIG[currentGoal] || REST_CONFIG.strength;
@@ -1131,6 +1248,7 @@
       totalVolume,
       totalSets,
       goal: currentGoal,
+      unit: currentUnit,
       exercises: loggedExercises,
     };
 
@@ -1141,13 +1259,13 @@
     const durationMin = Math.round(durationSeconds / 60);
     completeRoutineName.textContent = activeSession.routineName;
     completeDuration.textContent = `${durationMin}m`;
-    completeVolume.textContent = `${totalVolume.toLocaleString()} lbs`;
+    completeVolume.textContent = `${totalVolume.toLocaleString()} ${currentUnit}`;
     completeSets.textContent = totalSets;
 
     completeExercises.innerHTML = loggedExercises.map(ex => `
       <div class="completed-summary-item">
         <strong>${esc(ex.name)}</strong>
-        <span>${ex.sets.length} sets (${ex.sets.map(s => `${esc(s.weight)}×${esc(s.reps)}`).join(', ')})</span>
+        <span>${ex.sets.length} sets (${ex.sets.map(s => `${esc(s.weight)} ${currentUnit} × ${esc(s.reps)}`).join(', ')})</span>
       </div>
     `).join('');
 
@@ -1188,11 +1306,13 @@
     }
 
     historyList.innerHTML = history.map(entry => {
+      const origUnit = entry.unit || 'lbs';
+      const displayVolume = convertVolume(entry.totalVolume || 0, origUnit, currentUnit);
       const date = new Date(entry.date);
       const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
       const durationStr = entry.durationSeconds ? ` · ${Math.round(entry.durationSeconds / 60)} min` : '';
-      const volumeStr = entry.totalVolume ? ` · ${entry.totalVolume.toLocaleString()} lbs volume` : '';
+      const volumeStr = displayVolume ? ` · ${displayVolume.toLocaleString('en-IN')} ${currentUnit} volume` : '';
 
       return `
         <div class="history-card">
@@ -1202,7 +1322,10 @@
             ${entry.exercises.map(ex => `
               <div class="history-exercise">
                 <span class="history-exercise-name">${esc(ex.name)}</span>
-                <span>${ex.sets.map(s => `${esc(s.weight)} lbs × ${esc(s.reps)}`).join(' · ')}</span>
+                <span>${ex.sets.map(s => {
+                  const w = convertWeight(s.weight, origUnit, currentUnit);
+                  return `${esc(w)} ${currentUnit} × ${esc(s.reps)}`;
+                }).join(' · ')}</span>
               </div>
             `).join('')}
           </div>
@@ -1418,12 +1541,15 @@
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
 
-    const dataPoints = sessions.map(s => s.totalVolume || 0);
+    const dataPoints = sessions.map(s => {
+      const origUnit = s.unit || 'lbs';
+      return convertVolume(s.totalVolume || 0, origUnit, currentUnit);
+    });
 
     // Calculate average volume for subtitle
     const avgVol = Math.round(dataPoints.reduce((a, b) => a + b, 0) / (dataPoints.length || 1));
     if (volumeChartSubtitle) {
-      volumeChartSubtitle.textContent = `Avg ${avgVol.toLocaleString('en-IN')} lbs across ${sessions.length} session${sessions.length > 1 ? 's' : ''}`;
+      volumeChartSubtitle.textContent = `Avg ${avgVol.toLocaleString('en-IN')} ${currentUnit} across ${sessions.length} session${sessions.length > 1 ? 's' : ''}`;
     }
 
     if (volumeChartInstance) {
@@ -1435,7 +1561,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: 'Session Volume (lbs)',
+          label: `Session Volume (${currentUnit})`,
           data: dataPoints,
           borderColor: theme.accentLine,
           backgroundColor: gradient,
@@ -1497,7 +1623,7 @@
                 const idx = item.dataIndex;
                 const s = sessions[idx];
                 const setCnt = s.exercises ? s.exercises.reduce((acc, ex) => acc + (ex.sets ? ex.sets.length : 0), 0) : 0;
-                return ` Volume: ${item.parsed.y.toLocaleString('en-IN')} lbs (${setCnt} sets)`;
+                return ` Volume: ${item.parsed.y.toLocaleString('en-IN')} ${currentUnit} (${setCnt} sets)`;
               }
             }
           }
@@ -1677,10 +1803,12 @@
 
     history.forEach(entry => {
       const d = new Date(entry.date);
+      const origUnit = entry.unit || 'lbs';
+      const entryVolume = convertVolume(entry.totalVolume || 0, origUnit, currentUnit);
       if (d >= monday && d <= sunday) {
         const dayIdx = (d.getDay() + 6) % 7;
         completedDaysSet.add(dayIdx);
-        volumeThisWeek += (entry.totalVolume || 0);
+        volumeThisWeek += entryVolume;
       }
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         workoutsThisMonth++;
@@ -1739,14 +1867,17 @@
     }
 
     // 3. KPI Grid Metrics
-    const totalVolume = history.reduce((sum, h) => sum + (h.totalVolume || 0), 0);
+    const totalVolume = history.reduce((sum, h) => {
+      const origUnit = h.unit || 'lbs';
+      return sum + convertVolume(h.totalVolume || 0, origUnit, currentUnit);
+    }, 0);
     const totalDurationSeconds = history.reduce((sum, h) => sum + (h.durationSeconds || 0), 0);
     const totalHours = Math.floor(totalDurationSeconds / 3600);
     const totalMinutes = Math.floor((totalDurationSeconds % 3600) / 60);
     const avgDurationMin = history.length > 0 ? Math.round(totalDurationSeconds / history.length / 60) : 0;
 
-    if (kpiTotalVolume) kpiTotalVolume.textContent = `${totalVolume.toLocaleString('en-IN')} lbs`;
-    if (kpiVolumeWeek) kpiVolumeWeek.textContent = `+${volumeThisWeek.toLocaleString('en-IN')} lbs this week`;
+    if (kpiTotalVolume) kpiTotalVolume.textContent = `${totalVolume.toLocaleString('en-IN')} ${currentUnit}`;
+    if (kpiVolumeWeek) kpiVolumeWeek.textContent = `+${volumeThisWeek.toLocaleString('en-IN')} ${currentUnit} this week`;
     if (kpiTotalWorkouts) kpiTotalWorkouts.textContent = `${history.length}`;
     if (kpiWorkoutsMonth) kpiWorkoutsMonth.textContent = `${workoutsThisMonth} logged this month`;
     if (kpiTotalTime) kpiTotalTime.textContent = `${totalHours}h ${totalMinutes}m`;
@@ -1756,13 +1887,15 @@
     const exercisePRs = {};
     history.forEach(entry => {
       if (!entry.exercises) return;
+      const origUnit = entry.unit || 'lbs';
       entry.exercises.forEach(ex => {
         if (!ex.name || !ex.sets) return;
         const normName = ex.name.trim();
         ex.sets.forEach(s => {
-          const w = Number(s.weight) || 0;
+          const rawWeight = Number(s.weight) || 0;
           const r = Number(s.reps) || 0;
-          if (w > 0) {
+          if (rawWeight > 0) {
+            const w = convertWeight(rawWeight, origUnit, currentUnit);
             if (!exercisePRs[normName] || w > exercisePRs[normName].weight) {
               exercisePRs[normName] = {
                 name: normName,
@@ -1804,7 +1937,7 @@
                 <div class="pr-record-name">${esc(pr.name)}</div>
                 <div class="pr-record-date">${pr.reps} reps · Set on ${prDate}</div>
               </div>
-              <span class="pr-record-badge">${pr.weight} lbs</span>
+              <span class="pr-record-badge">${pr.weight} ${currentUnit}</span>
             </div>
           `;
         }).join('');
@@ -1832,7 +1965,9 @@
           const date = new Date(h.date);
           const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
           const durStr = h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} min` : '';
-          const volStr = h.totalVolume ? `${h.totalVolume.toLocaleString('en-IN')} lbs` : '';
+          const origUnit = h.unit || 'lbs';
+          const displayVol = convertVolume(h.totalVolume || 0, origUnit, currentUnit);
+          const volStr = displayVol ? `${displayVol.toLocaleString('en-IN')} ${currentUnit}` : '';
           const exercisesStr = h.exercises ? h.exercises.map(e => e.name).slice(0, 3).join(', ') : '';
 
           return `
@@ -1858,6 +1993,7 @@
   //  APP INITIALIZATION
   // ══════════════════════════════════════════
   applyTheme(currentTheme);
+  setWeightUnit(currentUnit, false);
   renderDashboard();
   renderRoutines();
   renderHistory();

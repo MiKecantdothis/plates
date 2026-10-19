@@ -1186,6 +1186,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1198,6 +1199,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0; /* lets the name shrink, instead of being squeezed into a column */
 }
 
 .active-badge {
@@ -1211,6 +1214,11 @@ body {
   border: 1px solid var(--accent);
   padding: 4px 10px;
   border-radius: var(--radius-full);
+  /* One line, with "…" if the name is too long. Wrapping turned the pill into a circle. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .active-timer-display {
@@ -1219,12 +1227,19 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap; /* keeps the stopwatch beside the time */
+  flex-shrink: 0;
 }
 
 .active-header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.active-header-actions button {
+  white-space: nowrap;
 }
 
 /* ── Exercise Stepper Pills ── */
@@ -2360,6 +2375,23 @@ body {
   /* Phones: weight and reps each get a full row */
   .set-inputs-row {
     grid-template-columns: 1fr;
+  }
+
+  /* Phones: routine name and timer on the first row, Finish and Cancel on the second */
+  .active-top-bar {
+    flex-wrap: wrap;
+  }
+
+  .active-header-actions {
+    flex: 1 1 100%;
+  }
+
+  .active-header-actions .btn-primary {
+    flex: 1;
+  }
+
+  .active-header-actions button {
+    min-height: 44px;
   }
 
   .shopping-input-row {

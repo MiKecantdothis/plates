@@ -59,36 +59,6 @@
   --transition-base: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ════════════════════════════════════════════════════════════
-   DASHBOARD COLOURS: Retains luxury Electric Blue & Cobalt
-   ════════════════════════════════════════════════════════════ */
-#tab-dashboard {
-  --bg-surface: #0b0f17;
-  --bg-elevated: #111723;
-  --bg-hover: #192234;
-  --bg-active: #212c44;
-
-  --accent: #3b82f6;
-  --accent-light: #60a5fa;
-  --accent-dark: #1d4ed8;
-  --accent-glow: rgba(59, 130, 246, 0.32);
-  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 55%, #1d4ed8 100%);
-  --accent-subtle: rgba(59, 130, 246, 0.12);
-
-  --green: #10b981;
-  --green-glow: rgba(16, 185, 129, 0.22);
-  --red: #f43f5e;
-  --red-subtle: rgba(244, 63, 94, 0.12);
-  --orange: #f59e0b;
-
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-accent: rgba(59, 130, 246, 0.38);
-}
 
 [data-theme="light"] {
   --theme: light;
@@ -129,33 +99,6 @@
   --modal-backdrop: rgba(0, 0, 0, 0.55);
 }
 
-[data-theme="light"] #tab-dashboard {
-  --bg-surface: #ffffff;
-  --bg-elevated: #e4ecf7;
-  --bg-hover: #d6e3f3;
-  --bg-active: #c4d5ed;
-
-  --accent: #2563eb;
-  --accent-light: #1d4ed8;
-  --accent-dark: #1e40af;
-  --accent-glow: rgba(37, 99, 235, 0.22);
-  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  --accent-subtle: rgba(37, 99, 235, 0.08);
-
-  --green: #059669;
-  --green-glow: rgba(5, 150, 105, 0.16);
-  --red: #e11d48;
-  --red-subtle: rgba(225, 29, 72, 0.1);
-  --orange: #d97706;
-
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-
-  --border: rgba(15, 23, 42, 0.08);
-  --border-subtle: rgba(15, 23, 42, 0.04);
-  --border-accent: rgba(37, 99, 235, 0.32);
-}
 
 /* ── Reset & Base ── */
 *,
@@ -655,7 +598,7 @@ body {
 
 /* Weekly Consistency & Streak */
 .weekly-streak-card {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid #ffffff;
 }
 
 .streak-card-header {
@@ -687,7 +630,7 @@ body {
   padding: 6px 14px;
   border-radius: var(--radius-full);
   border: 1px solid var(--accent);
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--accent-subtle);
   color: var(--accent-light);
   font-family: var(--font-display);
   font-size: 13px;
@@ -739,7 +682,7 @@ body {
 
 .day-pill.completed {
   border-color: var(--border-accent);
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--accent-subtle);
 }
 
 .day-pill.completed .day-pill-name {
@@ -846,7 +789,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-light);
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--accent-subtle);
   border: 1px solid var(--border-accent);
   padding: 4px 10px;
   border-radius: var(--radius-full);
@@ -2642,5 +2585,5 @@ body {
 }
 /* Backup & Data Safety */
 .backup-safety-card {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid #ffffff;
 }

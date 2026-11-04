@@ -2,49 +2,49 @@
    Plates — Deep Black & Blue Luxury Design System
    ============================================ */
 
-/* ── Theme Variables ── */
+/* ── Theme Variables: Minimalist Monochrome (Black & White) ── */
 :root {
   --theme: dark;
 
-  /* Background layers (Ultra-deep obsidian black) */
+  /* Background layers (Crisp deep black & obsidian) */
   --bg-base: #05070a;
-  --bg-surface: #0b0f17;
-  --bg-elevated: #111723;
-  --bg-hover: #192234;
-  --bg-active: #212c44;
+  --bg-surface: #0a0a0a;
+  --bg-elevated: #141414;
+  --bg-hover: #1f1f1f;
+  --bg-active: #2a2a2a;
 
-  /* Electric Cobalt & Cyan-Blue accents */
-  --accent: #3b82f6;
-  --accent-light: #60a5fa;
-  --accent-dark: #1d4ed8;
-  --accent-glow: rgba(59, 130, 246, 0.32);
-  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 55%, #1d4ed8 100%);
-  --accent-subtle: rgba(59, 130, 246, 0.12);
+  /* General App Monochrome Accents (Crisp White & Silver) */
+  --accent: #ffffff;
+  --accent-light: #ffffff;
+  --accent-dark: #d4d4d4;
+  --accent-glow: rgba(255, 255, 255, 0.18);
+  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #888888 100%);
+  --accent-subtle: rgba(255, 255, 255, 0.08);
 
-  /* Status & Functional colors */
-  --green: #10b981;
-  --green-glow: rgba(16, 185, 129, 0.22);
+  /* Status & Functional colors in Monochrome */
+  --green: #ffffff;
+  --green-glow: rgba(255, 255, 255, 0.18);
   --red: #f43f5e;
   --red-subtle: rgba(244, 63, 94, 0.12);
-  --orange: #f59e0b;
+  --orange: #ffffff;
 
   /* Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-muted: #666666;
 
   /* Borders & Glassmorphism */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-accent: rgba(59, 130, 246, 0.38);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(255, 255, 255, 0.32);
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.65);
-  --shadow-glow: 0 0 24px var(--accent-glow);
-  --header-bg: rgba(5, 7, 10, 0.85);
-  --modal-bg: #0b0f17;
-  --modal-backdrop: rgba(0, 0, 0, 0.8);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.7);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.85);
+  --shadow-glow: 0 0 24px rgba(255, 255, 255, 0.12);
+  --header-bg: rgba(5, 7, 10, 0.92);
+  --modal-bg: #0d0d0d;
+  --modal-backdrop: rgba(0, 0, 0, 0.85);
 
   /* Fonts & Geometry — Apple iPhone San Francisco (SF Pro) */
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro', 'SF Pro Text', -apple-system-body, 'Helvetica Neue', Helvetica, system-ui, sans-serif;
@@ -59,17 +59,82 @@
   --transition-base: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ════════════════════════════════════════════════════════════
+   DASHBOARD COLOURS: Retains luxury Electric Blue & Cobalt
+   ════════════════════════════════════════════════════════════ */
+#tab-dashboard {
+  --bg-surface: #0b0f17;
+  --bg-elevated: #111723;
+  --bg-hover: #192234;
+  --bg-active: #212c44;
+
+  --accent: #3b82f6;
+  --accent-light: #60a5fa;
+  --accent-dark: #1d4ed8;
+  --accent-glow: rgba(59, 130, 246, 0.32);
+  --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 55%, #1d4ed8 100%);
+  --accent-subtle: rgba(59, 130, 246, 0.12);
+
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.22);
+  --red: #f43f5e;
+  --red-subtle: rgba(244, 63, 94, 0.12);
+  --orange: #f59e0b;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-accent: rgba(59, 130, 246, 0.38);
+}
+
 [data-theme="light"] {
   --theme: light;
 
-  /* Background layers (Icy porcelain white & soft blue-grey) */
+  /* Monochrome Light background layers */
   --bg-base: #f0f4f9;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f4f4f5;
+  --bg-hover: #e4e4e7;
+  --bg-active: #d4d4d8;
+
+  --accent: #000000;
+  --accent-light: #18181b;
+  --accent-dark: #27272a;
+  --accent-glow: rgba(0, 0, 0, 0.14);
+  --accent-gradient: linear-gradient(135deg, #000000 0%, #52525b 100%);
+  --accent-subtle: rgba(0, 0, 0, 0.06);
+
+  --green: #000000;
+  --green-glow: rgba(0, 0, 0, 0.12);
+  --red: #e11d48;
+  --red-subtle: rgba(225, 29, 72, 0.1);
+  --orange: #000000;
+
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+
+  --border: rgba(0, 0, 0, 0.12);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-accent: rgba(0, 0, 0, 0.35);
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+  --header-bg: rgba(240, 244, 249, 0.92);
+  --modal-bg: #ffffff;
+  --modal-backdrop: rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="light"] #tab-dashboard {
   --bg-surface: #ffffff;
   --bg-elevated: #e4ecf7;
   --bg-hover: #d6e3f3;
   --bg-active: #c4d5ed;
 
-  /* Rich Royal Navy & Electric Blue */
   --accent: #2563eb;
   --accent-light: #1d4ed8;
   --accent-dark: #1e40af;
@@ -77,30 +142,19 @@
   --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   --accent-subtle: rgba(37, 99, 235, 0.08);
 
-  /* Status colors */
   --green: #059669;
   --green-glow: rgba(5, 150, 105, 0.16);
   --red: #e11d48;
   --red-subtle: rgba(225, 29, 72, 0.1);
   --orange: #d97706;
 
-  /* Typography */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
-  /* Borders & Glassmorphism */
   --border: rgba(15, 23, 42, 0.08);
   --border-subtle: rgba(15, 23, 42, 0.04);
   --border-accent: rgba(37, 99, 235, 0.32);
-
-  /* Shadows */
-  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.04);
-  --shadow-card: 0 8px 24px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
-  --shadow-glow: 0 0 20px var(--accent-glow);
-  --header-bg: rgba(240, 244, 249, 0.88);
-  --modal-bg: #ffffff;
-  --modal-backdrop: rgba(15, 23, 42, 0.45);
 }
 
 /* ── Reset & Base ── */
@@ -187,6 +241,10 @@ body {
 
 .logo:hover .plate-logo-icon {
   transform: rotate(45deg);
+}
+
+.logo-text .accent {
+  color: #ffffff;
 }
 
 .logo-text {
@@ -347,9 +405,18 @@ body {
 }
 
 .nav-btn.active {
-  color: var(--accent-light);
-  border-bottom-color: var(--accent);
+  color: #ffffff;
+  border-bottom-color: #ffffff;
   background: transparent;
+}
+
+#nav-btn-dashboard.active {
+  color: #60a5fa;
+  border-bottom-color: #3b82f6;
+}
+
+#nav-btn-dashboard:hover {
+  color: #60a5fa;
 }
 
 .nav-icon {
@@ -485,11 +552,11 @@ body {
   color: var(--accent-light);
   border: 1.5px solid var(--accent);
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 10px var(--accent-subtle);
 }
 
 .btn-primary:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--accent-subtle);
   border-color: var(--accent-light);
   color: #ffffff;
   box-shadow: 0 0 16px var(--accent-glow);
@@ -513,13 +580,15 @@ body {
 }
 
 .btn-danger {
-  background: var(--red-subtle);
-  color: var(--red);
-  border: 1px solid rgba(244, 63, 94, 0.2);
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .btn-danger:hover {
-  background: rgba(244, 63, 94, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -1283,12 +1352,12 @@ body {
   border: 1.5px solid var(--accent);
   background: transparent;
   color: var(--accent-light);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 10px var(--accent-subtle);
 }
 
 .stepper-pill.completed {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: var(--green);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text-primary);
 }
 
 .stepper-pill-idx {
@@ -1388,7 +1457,7 @@ body {
   padding: 18px 20px;
   margin-bottom: 22px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   animation: restSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1665,11 +1734,11 @@ body {
   background: transparent;
   border: 1.5px solid var(--accent);
   color: var(--accent-light);
-  box-shadow: 0 0 14px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 14px var(--accent-subtle);
 }
 
 .btn-complete-set:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--accent-subtle);
   border-color: var(--accent-light);
   color: #ffffff;
   box-shadow: 0 0 20px var(--accent-glow);
@@ -2141,8 +2210,8 @@ body {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent-light);
-  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-primary);
+  background: var(--accent-subtle);
   border: 1px solid var(--border-accent);
   padding: 3px 9px;
   border-radius: var(--radius-full);

@@ -77,3 +77,51 @@ test('clearing history can be undone', async ({ page }) => {
   await expect(page.locator('.history-card')).toHaveCount(3);
   expect(await stored(page, 'plates_history')).toHaveLength(3);
 });
+
+test('legacy "lbs" unit preference is normalized to "lb" without losing data', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.setItem('plates_unit', 'lbs');
+    const workout = {
+      id: 'legacy-w1',
+      routineId: 'default-push',
+      routineName: 'Push Day',
+      date: new Date().toISOString(),
+      durationSeconds: 1200,
+      totalVolume: 500,
+      unit: 'lbs',
+      exercises: [{ name: 'Bench Press', sets: [{ weight: 100, reps: 5, unit: 'lbs' }] }]
+    };
+    localStorage.setItem('plates_history', JSON.stringify([workout]));
+  });
+  await page.reload();
+
+  // Unit should be normalized to 'lb'
+  const unit = await page.evaluate(() => localStorage.getItem('plates_unit'));
+  expect(unit).toBe('lb');
+
+  // History should be present and intact
+  await page.click('#nav-btn-history');
+  await expect(page.locator('.history-card')).toHaveCount(1);
+  await expect(page.locator('.history-exercise')).toContainText('100 lb × 5');
+});
+
+test('an automatic backup snapshot is saved on startup', async ({ page }) => {
+  await page.goto('/');
+  const workout = {
+    id: 'snap-1',
+    routineId: 'default-push',
+    routineName: 'Push Day',
+    date: new Date().toISOString(),
+    durationSeconds: 1000,
+    totalVolume: 300,
+    exercises: [{ name: 'Barbell Bench Press', sets: [{ weight: 60, reps: 10, unit: 'kg' }] }]
+  };
+  await seed(page, 'plates_history', [workout]);
+
+  const snap = await stored(page, 'plates_backup_latest');
+  expect(snap).not.toBeNull();
+  expect(snap.version).toBe(15);
+  expect(snap.history).toHaveLength(1);
+  expect(snap.history[0].id).toBe('snap-1');
+});

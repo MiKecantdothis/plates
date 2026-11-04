@@ -2578,3 +2578,7 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* Backup & Data Safety */
+.backup-safety-card {
+  border-left: 3px solid var(--accent);
+}

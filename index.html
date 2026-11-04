@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=14" />
+  <link rel="stylesheet" href="index.css?v=15" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -304,6 +304,20 @@
           <!-- Recent session cards injected by JS -->
         </div>
       </div>
+
+      <!-- Data Safety & Backup -->
+      <div class="dashboard-card backup-safety-card">
+        <div class="card-header-row">
+          <div>
+            <div class="dashboard-card-title">Data Safety & Backup</div>
+            <div class="dashboard-card-subtitle">Protect your workout history and routines across updates</div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btn-export-backup" class="btn-secondary btn-small" title="Export all your workouts and routines to a JSON file">Export Backup 📦</button>
+            <button type="button" id="btn-import-backup" class="btn-secondary btn-small" title="Import workouts and routines from a JSON backup">Import Backup 📥</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ── WORKOUTS / ROUTINES TAB ── -->
@@ -502,7 +516,11 @@
     <section id="tab-history" class="tab-panel">
       <div class="section-header">
         <h1>Workout History</h1>
-        <button id="btn-clear-history" class="btn-danger">Clear All</button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="btn-export-history" class="btn-secondary btn-small" title="Export all your workouts and routines to JSON">Export Backup 📦</button>
+          <button type="button" id="btn-import-history" class="btn-secondary btn-small" title="Import workouts from JSON backup">Import Backup 📥</button>
+          <button type="button" id="btn-clear-history" class="btn-danger">Clear All</button>
+        </div>
       </div>
       <p class="subtitle">Review past workout logs grouped by date.</p>
       <div id="history-list" class="history-list">
@@ -622,10 +640,24 @@
     </div>
   </div>
 
-  <script src="app.js?v=14"></script>
+  <input type="file" id="input-import-file" accept=".json" style="display: none;" />
+  <script src="app.js?v=15"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                if (typeof window.notifyAppUpdate === 'function') {
+                  window.notifyAppUpdate();
+                }
+              }
+            });
+          }
+        });
+      }).catch(() => {});
     }
   </script>
 </body>

@@ -66,6 +66,81 @@
     },
   ];
 
+  // ── Data Migration & Safety Guardrails ──
+  // Run before reading any state to ensure backwards compatibility across updates.
+  function runDataMigrations() {
+    try {
+      // 1. Normalize weight unit preference (e.g. 'lbs' -> 'lb')
+      const rawUnit = localStorage.getItem('plates_unit');
+      if (rawUnit === 'lbs') {
+        localStorage.setItem('plates_unit', 'lb');
+      }
+
+      // 2. Normalize workout history entries without overwriting unitless sets
+      const rawHistory = localStorage.getItem('plates_history');
+      if (rawHistory) {
+        let historyData = JSON.parse(rawHistory);
+        if (Array.isArray(historyData)) {
+          let modified = false;
+          historyData.forEach((entry) => {
+            if (!entry) return;
+            if (entry.unit === 'lbs') {
+              entry.unit = 'lb';
+              modified = true;
+            }
+            if (Array.isArray(entry.exercises)) {
+              entry.exercises.forEach((ex) => {
+                if (ex && Array.isArray(ex.sets)) {
+                  ex.sets.forEach((s) => {
+                    if (s && s.unit === 'lbs') {
+                      s.unit = 'lb';
+                      modified = true;
+                    }
+                  });
+                }
+              });
+            }
+          });
+          if (modified) {
+            localStorage.setItem('plates_history', JSON.stringify(historyData));
+          }
+        }
+      }
+
+      // 3. Normalize active session
+      const rawSession = localStorage.getItem('plates_active_session');
+      if (rawSession) {
+        let sessionData = JSON.parse(rawSession);
+        if (sessionData) {
+          let sessionModified = false;
+          if (sessionData.unit === 'lbs') {
+            sessionData.unit = 'lb';
+            sessionModified = true;
+          }
+          if (Array.isArray(sessionData.exercises)) {
+            sessionData.exercises.forEach((ex) => {
+              if (ex && Array.isArray(ex.sets)) {
+                ex.sets.forEach((s) => {
+                  if (s && s.unit === 'lbs') {
+                    s.unit = 'lb';
+                    sessionModified = true;
+                  }
+                });
+              }
+            });
+          }
+          if (sessionModified) {
+            localStorage.setItem('plates_active_session', JSON.stringify(sessionData));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Data migration notice:', err);
+    }
+  }
+
+  runDataMigrations();
+
   // ── State Management ──
   let routines     = loadJSON('plates_routines', null);
   if (!routines || routines.length === 0) {
@@ -102,6 +177,10 @@
   let legacyUnit = localStorage.getItem('plates_legacy_unit');
   if (legacyUnit !== 'kg' && legacyUnit !== 'lb') legacyUnit = null;
   let weightUnit = localStorage.getItem('plates_unit');
+  if (weightUnit === 'lbs') {
+    weightUnit = 'lb';
+    localStorage.setItem('plates_unit', 'lb');
+  }
   if (weightUnit !== 'kg' && weightUnit !== 'lb') {
     // People with sets from before keep seeing lb, as they always did.
     // Everyone else starts with their region's unit.
@@ -206,6 +285,13 @@
   const btnPrevExercise    = $('#btn-prev-exercise');
   const btnNextExercise    = $('#btn-next-exercise');
 
+  // Data Safety & Backup
+  const btnExportBackup    = $('#btn-export-backup');
+  const btnImportBackup    = $('#btn-import-backup');
+  const btnExportHistory   = $('#btn-export-history');
+  const btnImportHistory   = $('#btn-import-history');
+  const inputImportFile    = $('#input-import-file');
+
   // History Tab
   const historyList        = $('#history-list');
   const btnClearHistory    = $('#btn-clear-history');
@@ -297,8 +383,12 @@
   }
 
   // The unit a set was logged in
-  function unitOf(set) {
-    return set.unit === 'kg' || set.unit === 'lb' ? set.unit : (legacyUnit || 'lb');
+  function unitOf(set, entry) {
+    const raw = set && (set.unit === 'lbs' ? 'lb' : set.unit);
+    if (raw === 'kg' || raw === 'lb') return raw;
+    if (entry && (entry.unit === 'kg' || entry.unit === 'lb')) return entry.unit;
+    if (entry && entry.unit === 'lbs') return 'lb';
+    return legacyUnit || 'lb';
   }
 
   function convertWeight(value, from, to) {
@@ -307,8 +397,8 @@
   }
 
   // A set's weight in the unit being shown
-  function shownWeight(set) {
-    return convertWeight(Number(set.weight) || 0, unitOf(set), weightUnit);
+  function shownWeight(set, entry) {
+    return convertWeight(Number(set?.weight) || 0, unitOf(set, entry), weightUnit);
   }
 
   // As typed (up to 2 decimals, e.g. 61.25), or 1 decimal when converted (132.3)
@@ -319,8 +409,9 @@
 
   // Total of weight × reps for a logged workout, in the unit being shown
   function workoutVolume(entry) {
+    if (!entry) return 0;
     return (entry.exercises || []).reduce((sum, ex) =>
-      sum + (ex.sets || []).reduce((acc, s) => acc + shownWeight(s) * (Number(s.reps) || 0), 0), 0);
+      sum + (ex.sets || []).reduce((acc, s) => acc + shownWeight(s, entry) * (Number(s.reps) || 0), 0), 0);
   }
 
   // Exercise names are typed freely, so match them loosely
@@ -1416,6 +1507,174 @@
     });
   });
 
+
+  // ══════════════════════════════════════════
+  //  DATA SAFETY & BACKUP
+  // ══════════════════════════════════════════
+
+  function createAutoBackup() {
+    try {
+      const snap = {
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        version: 15,
+        history,
+        routines,
+        shoppingList,
+        weightUnit,
+        currentGoal,
+        currentTheme,
+      };
+      if ((snap.history && snap.history.length > 0) || (snap.routines && snap.routines.length > 0)) {
+        localStorage.setItem('plates_backup_latest', JSON.stringify(snap));
+      }
+    } catch (e) {
+      console.warn('Auto backup notice:', e);
+    }
+  }
+
+  function requestPersistentStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {});
+      }
+    } catch {}
+  }
+
+  function exportData() {
+    try {
+      const payload = {
+        app: 'Plates',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: {
+          history,
+          routines,
+          shoppingList,
+          weightUnit,
+          legacyUnit,
+          currentGoal,
+          currentTheme,
+        }
+      };
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      a.href = url;
+      a.download = `plates-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('Backup exported successfully! 📦');
+    } catch (err) {
+      console.error('Export failed:', err);
+      toast('Could not export backup file');
+    }
+  }
+
+  function importData(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        const data = parsed.data || parsed;
+        const importedHistory = Array.isArray(data.history) ? data.history : [];
+        const importedRoutines = Array.isArray(data.routines) ? data.routines : [];
+
+        if (importedHistory.length === 0 && importedRoutines.length === 0) {
+          toast('No workouts or routines found in file');
+          return;
+        }
+
+        const confirmMsg = `Import ${importedHistory.length} workouts and ${importedRoutines.length} routines? This will merge safely with your existing data.`;
+        if (!confirm(confirmMsg)) return;
+
+        createAutoBackup();
+
+        // Merge routines
+        const existingRoutineIds = new Set(routines.map(r => r.id));
+        const existingRoutineNames = new Set(routines.map(r => (r.name || '').trim().toLowerCase()));
+        importedRoutines.forEach(r => {
+          const nameKey = (r.name || '').trim().toLowerCase();
+          if (!existingRoutineIds.has(r.id) && !existingRoutineNames.has(nameKey)) {
+            routines.push(r);
+            existingRoutineIds.add(r.id);
+            existingRoutineNames.add(nameKey);
+          }
+        });
+        saveJSON('plates_routines', routines);
+
+        // Merge history
+        const existingHistIds = new Set(history.map(h => h.id));
+        const existingSignatures = new Set(history.map(h => `${h.date}_${h.routineName}`));
+        let addedCount = 0;
+        importedHistory.forEach(h => {
+          const sig = `${h.date}_${h.routineName}`;
+          if (!existingHistIds.has(h.id) && !existingSignatures.has(sig)) {
+            if (!h.id) h.id = uid();
+            history.push(h);
+            existingHistIds.add(h.id);
+            existingSignatures.add(sig);
+            addedCount++;
+          }
+        });
+        history.sort((a, b) => new Date(b.date) - new Date(a.date));
+        saveJSON('plates_history', history);
+
+        // Merge shopping list
+        if (Array.isArray(data.shoppingList) && data.shoppingList.length > 0) {
+          const existingShopIds = new Set(shoppingList.map(s => s.id));
+          data.shoppingList.forEach(item => {
+            if (!existingShopIds.has(item.id)) {
+              shoppingList.push(item);
+              existingShopIds.add(item.id);
+            }
+          });
+          saveJSON('plates_shopping', shoppingList);
+        }
+
+        if (data.weightUnit && (data.weightUnit === 'kg' || data.weightUnit === 'lb')) {
+          weightUnit = data.weightUnit;
+          localStorage.setItem('plates_unit', weightUnit);
+        }
+
+        renderDashboard();
+        renderRoutines();
+        renderHistory();
+        renderShopping();
+        applyUnitUI();
+
+        toast(`Imported ${addedCount} workouts and ${importedRoutines.length} routines! 🎉`);
+      } catch (err) {
+        console.error('Import failed:', err);
+        toast('Invalid backup file. Could not parse JSON.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  if (btnExportBackup) btnExportBackup.addEventListener('click', exportData);
+  if (btnExportHistory) btnExportHistory.addEventListener('click', exportData);
+  const triggerImport = () => {
+    if (inputImportFile) {
+      inputImportFile.value = '';
+      inputImportFile.click();
+    }
+  };
+  if (btnImportBackup) btnImportBackup.addEventListener('click', triggerImport);
+  if (btnImportHistory) btnImportHistory.addEventListener('click', triggerImport);
+  if (inputImportFile) {
+    inputImportFile.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) importData(file);
+    });
+  }
+
   // ══════════════════════════════════════════
   //  SHOPPING LIST
   // ══════════════════════════════════════════
@@ -2045,10 +2304,20 @@
   // ══════════════════════════════════════════
   applyTheme(currentTheme);
   applyUnitUI();
-  renderDashboard();
-  renderRoutines();
-  renderHistory();
-  renderShopping();
+  try { renderDashboard(); } catch (err) { console.error('Dashboard render error:', err); }
+  try { renderRoutines(); } catch (err) { console.error('Routines render error:', err); }
+  try { renderHistory(); } catch (err) { console.error('History render error:', err); }
+  try { renderShopping(); } catch (err) { console.error('Shopping render error:', err); }
+
+  requestPersistentStorage();
+  createAutoBackup();
+
+  window.notifyAppUpdate = function() {
+    toast('New update ready! Reload to apply.', {
+      label: 'Reload',
+      onClick: () => window.location.reload()
+    });
+  };
 
   // If a session was already in progress, pick it up where it is now
   if (activeSession) {

@@ -957,6 +957,96 @@ body {
   line-height: 1.5;
 }
 
+/* ── Body Part Filter Bar ── */
+.bodypart-filters-bar {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-top: 14px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bodypart-filters {
+  display: flex;
+  gap: 8px;
+  min-width: max-content;
+}
+
+.bodypart-chip {
+  padding: 7px 15px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.bodypart-chip:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+.bodypart-chip.active {
+  background: var(--text-primary);
+  color: var(--bg-base);
+  border-color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Body Part Groupings in Routines ── */
+.bodypart-group {
+  margin-bottom: 28px;
+}
+
+.bodypart-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bodypart-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bodypart-group-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.bodypart-group-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.routine-bodypart-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
 /* ── Routines Grid ── */
 .routines-grid {
   display: grid;
@@ -1300,6 +1390,17 @@ body {
   font-size: 10px;
   font-weight: 800;
   opacity: 0.7;
+}
+
+.stepper-pill-add {
+  border-style: dashed;
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+.stepper-pill-add:hover {
+  border-style: solid;
+  border-color: var(--accent);
 }
 
 /* ── Active Exercise Card ── */

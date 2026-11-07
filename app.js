@@ -44,24 +44,62 @@
     other:        'Other',
   };
 
-  // Default seed routines if the user has none yet
+  // Body Parts taxonomy
+  const BODY_PARTS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
+
+  function inferBodyPart(name = '', exercises = []) {
+    const text = `${name} ${Array.isArray(exercises) ? exercises.join(' ') : ''}`.toLowerCase();
+    if (/chest|bench|push|pec|fly|dip/i.test(text)) return 'Chest';
+    if (/back|pull|lat|row|deadlift/i.test(text)) return 'Back';
+    if (/leg|squat|quad|hamstring|calf|calves|lunge/i.test(text)) return 'Legs';
+    if (/shoulder|delt|overhead|military|press|shrug/i.test(text)) return 'Shoulders';
+    if (/arm|bicep|tricep|curl|skull/i.test(text)) return 'Arms';
+    if (/core|ab|abs|plank|crunch/i.test(text)) return 'Core';
+    return 'Full Body';
+  }
+
+  // Default seed routines organized per body part if the user has none yet
   const DEFAULT_ROUTINES = [
     {
       id: 'default-push',
       name: 'Push Day (Chest & Triceps)',
+      bodyPart: 'Chest',
       exercises: ['Barbell Bench Press', 'Incline Dumbbell Press', 'Overhead Shoulder Press', 'Cable Tricep Pushdown'],
       defaultSets: 3,
     },
     {
       id: 'default-pull',
       name: 'Pull Day (Back & Biceps)',
+      bodyPart: 'Back',
       exercises: ['Conventional Deadlift', 'Wide-Grip Lat Pulldown', 'Bent-Over Barbell Row', 'Incline Dumbbell Curl'],
       defaultSets: 3,
     },
     {
       id: 'default-legs',
       name: 'Leg Day (Quads & Hamstrings)',
+      bodyPart: 'Legs',
       exercises: ['Barbell Back Squat', 'Romanian Deadlift', 'Leg Press Machine', 'Standing Calf Raises'],
+      defaultSets: 3,
+    },
+    {
+      id: 'default-shoulders',
+      name: 'Shoulders & Traps',
+      bodyPart: 'Shoulders',
+      exercises: ['Overhead Barbell Press', 'Dumbbell Lateral Raise', 'Face Pulls', 'Dumbbell Shrugs'],
+      defaultSets: 3,
+    },
+    {
+      id: 'default-arms',
+      name: 'Arms (Biceps & Triceps)',
+      bodyPart: 'Arms',
+      exercises: ['Barbell Bicep Curl', 'Skull Crushers', 'Hammer Curls', 'Tricep Rope Pushdown'],
+      defaultSets: 3,
+    },
+    {
+      id: 'default-core',
+      name: 'Core & Abs',
+      bodyPart: 'Core',
+      exercises: ['Hanging Leg Raise', 'Cable Woodchoppers', 'Plank Hold', 'Ab Wheel Rollout'],
       defaultSets: 3,
     },
   ];
@@ -117,6 +155,10 @@
             sessionData.unit = 'lb';
             sessionModified = true;
           }
+          if (!sessionData.bodyPart && sessionData.routineName) {
+            sessionData.bodyPart = inferBodyPart(sessionData.routineName, (sessionData.exercises || []).map(e => e.name));
+            sessionModified = true;
+          }
           if (Array.isArray(sessionData.exercises)) {
             sessionData.exercises.forEach((ex) => {
               if (ex && Array.isArray(ex.sets)) {
@@ -134,6 +176,24 @@
           }
         }
       }
+
+      // 4. Ensure all routines have a bodyPart assigned
+      const rawRoutines = localStorage.getItem('plates_routines');
+      if (rawRoutines) {
+        let routinesData = JSON.parse(rawRoutines);
+        if (Array.isArray(routinesData)) {
+          let routinesModified = false;
+          routinesData.forEach(r => {
+            if (r && !r.bodyPart) {
+              r.bodyPart = inferBodyPart(r.name, r.exercises);
+              routinesModified = true;
+            }
+          });
+          if (routinesModified) {
+            localStorage.setItem('plates_routines', JSON.stringify(routinesData));
+          }
+        }
+      }
     } catch (err) {
       console.warn('Data migration notice:', err);
     }
@@ -146,7 +206,20 @@
   if (!routines || routines.length === 0) {
     routines = DEFAULT_ROUTINES;
     saveJSON('plates_routines', routines);
+  } else {
+    let routinesUpdated = false;
+    routines.forEach(r => {
+      if (r && !r.bodyPart) {
+        r.bodyPart = inferBodyPart(r.name, r.exercises);
+        routinesUpdated = true;
+      }
+    });
+    if (routinesUpdated) {
+      saveJSON('plates_routines', routines);
+    }
   }
+
+  let selectedBodyPartFilter = 'all';
 
   let history      = loadJSON('plates_history', []);
   let shoppingList = loadJSON('plates_shopping', []);
@@ -239,6 +312,7 @@
   // Routines Tab
   const routinesGrid       = $('#routines-grid');
   const btnAddRoutine      = $('#btn-add-routine');
+  const bodypartFiltersContainer = $('#bodypart-filters');
   const sessionBanner      = $('#session-banner');
   const bannerRoutineName  = $('#banner-routine-name');
   const bannerElapsed      = $('#banner-elapsed');
@@ -282,8 +356,18 @@
   const btnCompleteSet     = $('#btn-complete-set');
   const exerciseSetsList   = $('#exercise-sets-list');
   const btnAddExtraSet     = $('#btn-add-extra-set');
+  const btnAddExerciseActive = $('#btn-add-exercise-active');
+  const btnRemoveExerciseActive = $('#btn-remove-exercise-active');
   const btnPrevExercise    = $('#btn-prev-exercise');
   const btnNextExercise    = $('#btn-next-exercise');
+
+  // Modal: Add Exercise During Active Workout
+  const modalAddExerciseActive      = $('#modal-add-exercise-active');
+  const activeNewExerciseName       = $('#active-new-exercise-name');
+  const activeNewExerciseSets       = $('#active-new-exercise-sets');
+  const activeNewExercisePosition   = $('#active-new-exercise-position');
+  const btnConfirmAddExerciseActive = $('#btn-confirm-add-exercise-active');
+  const btnCancelAddExerciseActive  = $('#btn-cancel-add-exercise-active');
 
   // Data Safety & Backup
   const btnExportBackup    = $('#btn-export-backup');
@@ -308,13 +392,14 @@
   const shoppingRemainingSpend= $('#shopping-remaining-spend');
 
   // Routine Modal
-  const modalRoutine       = $('#modal-routine');
-  const modalRoutineTitle  = $('#modal-routine-title');
-  const routineNameInput   = $('#routine-name');
-  const exerciseList       = $('#exercise-list');
-  const btnAddExercise     = $('#btn-add-exercise');
-  const btnSaveRoutine     = $('#btn-save-routine');
-  const btnCancelRoutine   = $('#btn-cancel-routine');
+  const modalRoutine          = $('#modal-routine');
+  const modalRoutineTitle     = $('#modal-routine-title');
+  const routineNameInput      = $('#routine-name');
+  const routineBodyPartSelect = $('#routine-body-part');
+  const exerciseList          = $('#exercise-list');
+  const btnAddExercise        = $('#btn-add-exercise');
+  const btnSaveRoutine        = $('#btn-save-routine');
+  const btnCancelRoutine      = $('#btn-cancel-routine');
 
   // Workout Complete Celebration Modal
   const modalComplete      = $('#modal-workout-complete');
@@ -637,36 +722,17 @@
   });
 
   // ══════════════════════════════════════════
-  //  ROUTINES MANAGEMENT
+  //  ROUTINES MANAGEMENT (STORED BY BODY PART)
   // ══════════════════════════════════════════
 
-  function renderRoutines() {
-    // Render top resume banner if a session is currently running
-    updateBannerVisibility();
-
-    if (!routines || routines.length === 0) {
-      routinesGrid.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1">
-          <svg class="empty-state-plate" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="18" cy="18" r="16.5" stroke="currentColor" stroke-width="2.2" class="plate-outer"/>
-            <circle cx="18" cy="18" r="14" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.45"/>
-            <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
-            <circle cx="18" cy="18" r="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.6" class="plate-hub"/>
-            <circle cx="18" cy="18" r="3.2" fill="var(--bg-base)" stroke="currentColor" stroke-width="1.4"/>
-            <circle cx="18" cy="13.2" r="0.9" fill="currentColor" opacity="0.8"/>
-            <circle cx="18" cy="22.8" r="0.9" fill="currentColor" opacity="0.8"/>
-            <circle cx="13.2" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
-            <circle cx="22.8" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
-          </svg>
-          <p class="empty-state-text">No routines created yet.<br>Tap <strong>+ Add Routine</strong> to build your workout.</p>
-        </div>`;
-      return;
-    }
-
-    routinesGrid.innerHTML = routines.map(r => `
+  function renderRoutineCardHtml(r) {
+    return `
       <div class="routine-card" data-id="${esc(r.id)}">
         <div class="routine-card-header">
-          <span class="routine-card-title">${esc(r.name)}</span>
+          <div>
+            <span class="routine-bodypart-badge">${esc(r.bodyPart || inferBodyPart(r.name, r.exercises))}</span>
+            <div class="routine-card-title">${esc(r.name)}</div>
+          </div>
           <div class="routine-card-actions">
             <button class="btn-icon" data-action="edit" data-id="${esc(r.id)}" title="Edit routine">
               <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -695,7 +761,99 @@
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+  }
+
+  function renderRoutines() {
+    // Render top resume banner if a session is currently running
+    updateBannerVisibility();
+
+    if (!routines || routines.length === 0) {
+      routinesGrid.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1">
+          <svg class="empty-state-plate" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="16.5" stroke="currentColor" stroke-width="2.2" class="plate-outer"/>
+            <circle cx="18" cy="18" r="14" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" opacity="0.45"/>
+            <circle cx="18" cy="18" r="11" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+            <circle cx="18" cy="18" r="6" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.6" class="plate-hub"/>
+            <circle cx="18" cy="18" r="3.2" fill="var(--bg-base)" stroke="currentColor" stroke-width="1.4"/>
+            <circle cx="18" cy="13.2" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="18" cy="22.8" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="13.2" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+            <circle cx="22.8" cy="18" r="0.9" fill="currentColor" opacity="0.8"/>
+          </svg>
+          <p class="empty-state-text">No routines created yet.<br>Tap <strong>+ Add Routine</strong> to build your workout.</p>
+        </div>`;
+      return;
+    }
+
+    let html = '';
+
+    if (selectedBodyPartFilter === 'all') {
+      const groups = [];
+      BODY_PARTS.forEach(bp => {
+        const matches = routines.filter(r => (r.bodyPart || inferBodyPart(r.name, r.exercises)).toLowerCase() === bp.toLowerCase());
+        if (matches.length > 0) groups.push({ name: bp, items: matches });
+      });
+      // Custom body parts if any
+      const knownLower = new Set(BODY_PARTS.map(b => b.toLowerCase()));
+      routines.forEach(r => {
+        const bp = r.bodyPart || inferBodyPart(r.name, r.exercises);
+        if (!knownLower.has(bp.toLowerCase())) {
+          let g = groups.find(x => x.name.toLowerCase() === bp.toLowerCase());
+          if (!g) {
+            g = { name: bp, items: [] };
+            groups.push(g);
+          }
+          if (!g.items.includes(r)) g.items.push(r);
+        }
+      });
+
+      html = groups.map(g => `
+        <div class="bodypart-group" data-bodypart="${esc(g.name)}">
+          <div class="bodypart-group-header">
+            <div class="bodypart-group-title">
+              <span class="bodypart-group-name">${esc(g.name)}</span>
+              <span class="bodypart-group-count">${g.items.length} workout${g.items.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div class="routines-grid">
+            ${g.items.map(r => renderRoutineCardHtml(r)).join('')}
+          </div>
+        </div>
+      `).join('');
+    } else {
+      const filtered = routines.filter(r => (r.bodyPart || inferBodyPart(r.name, r.exercises)).toLowerCase() === selectedBodyPartFilter.toLowerCase());
+      if (filtered.length === 0) {
+        html = `
+          <div class="empty-state" style="padding: 36px 16px;">
+            <p class="empty-state-text">No ${esc(selectedBodyPartFilter)} workouts created yet.</p>
+            <button type="button" class="btn-primary btn-small" id="btn-add-specific-bodypart" style="margin-top: 14px">+ Add ${esc(selectedBodyPartFilter)} Workout</button>
+          </div>
+        `;
+      } else {
+        html = `
+          <div class="bodypart-group" data-bodypart="${esc(selectedBodyPartFilter)}">
+            <div class="bodypart-group-header">
+              <div class="bodypart-group-title">
+                <span class="bodypart-group-name">${esc(selectedBodyPartFilter)}</span>
+                <span class="bodypart-group-count">${filtered.length} workout${filtered.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div class="routines-grid">
+              ${filtered.map(r => renderRoutineCardHtml(r)).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    routinesGrid.innerHTML = html;
+
+    const btnAddSpecific = $('#btn-add-specific-bodypart');
+    if (btnAddSpecific) {
+      btnAddSpecific.addEventListener('click', () => openRoutineModal(null));
+    }
 
     // Wire Start Workout buttons
     routinesGrid.querySelectorAll('[data-action="start"]').forEach(btn => {
@@ -733,6 +891,19 @@
     });
   }
 
+  // Wire body part filter buttons
+  if (bodypartFiltersContainer) {
+    bodypartFiltersContainer.querySelectorAll('.bodypart-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        selectedBodyPartFilter = chip.dataset.part || 'all';
+        bodypartFiltersContainer.querySelectorAll('.bodypart-chip').forEach(c => {
+          c.classList.toggle('active', c === chip);
+        });
+        renderRoutines();
+      });
+    });
+  }
+
   // ── Routine Modal Handlers ──
   btnAddRoutine.addEventListener('click', () => {
     if (routines.length >= MAX_ROUTINES) {
@@ -747,6 +918,17 @@
     const routine = id ? routines.find(r => r.id === id) : null;
     modalRoutineTitle.textContent = routine ? 'Edit Routine' : 'Add Routine';
     routineNameInput.value = routine ? routine.name : '';
+
+    if (routineBodyPartSelect) {
+      if (routine && routine.bodyPart) {
+        routineBodyPartSelect.value = routine.bodyPart;
+      } else if (selectedBodyPartFilter && selectedBodyPartFilter !== 'all') {
+        routineBodyPartSelect.value = selectedBodyPartFilter;
+      } else {
+        routineBodyPartSelect.value = 'Chest';
+      }
+    }
+
     exerciseList.innerHTML = '';
 
     const list = routine ? routine.exercises : ['', ''];
@@ -785,16 +967,22 @@
 
     if (exercises.length === 0) { toast('Add at least one exercise'); return; }
 
+    const bodyPart = (routineBodyPartSelect && routineBodyPartSelect.value)
+      ? routineBodyPartSelect.value
+      : inferBodyPart(name, exercises);
+
     if (editingRoutineId) {
       const r = routines.find(r => r.id === editingRoutineId);
       if (r) {
         r.name = name;
+        r.bodyPart = bodyPart;
         r.exercises = exercises;
       }
     } else {
       routines.push({
         id: uid(),
         name,
+        bodyPart,
         exercises,
         defaultSets: 3,
       });
@@ -835,6 +1023,7 @@
     activeSession = {
       routineId: routine.id,
       routineName: routine.name,
+      bodyPart: routine.bodyPart || inferBodyPart(routine.name, routine.exercises),
       startTime: Date.now(),
       elapsedSeconds: 0,
       currentExerciseIndex: 0,
@@ -963,7 +1152,7 @@
     }
 
     // Stepper Pills (Exercise List Navigation)
-    exerciseStepper.innerHTML = activeSession.exercises.map((ex, idx) => {
+    const pillsHtml = activeSession.exercises.map((ex, idx) => {
       const isCurrent = idx === activeSession.currentExerciseIndex;
       const isDone = ex.sets.length >= ex.targetSets && ex.sets.length > 0;
       return `
@@ -975,13 +1164,22 @@
       `;
     }).join('');
 
-    exerciseStepper.querySelectorAll('.stepper-pill').forEach(pill => {
+    exerciseStepper.innerHTML = pillsHtml + `
+      <button type="button" class="stepper-pill stepper-pill-add" id="btn-stepper-add-exercise" title="Add exercise variation">+ Add</button>
+    `;
+
+    exerciseStepper.querySelectorAll('.stepper-pill[data-idx]').forEach(pill => {
       pill.addEventListener('click', () => {
         activeSession.currentExerciseIndex = parseInt(pill.dataset.idx, 10);
         saveJSON('plates_active_session', activeSession);
         renderActiveWorkoutView();
       });
     });
+
+    const btnStepperAdd = $('#btn-stepper-add-exercise');
+    if (btnStepperAdd) {
+      btnStepperAdd.addEventListener('click', openAddExerciseActiveModal);
+    }
 
     // Current Exercise Card Details
     activeStepLabel.textContent = `Exercise ${activeSession.currentExerciseIndex + 1} of ${activeSession.exercises.length}`;
@@ -1046,6 +1244,15 @@
     btnNextExercise.textContent = activeSession.currentExerciseIndex === activeSession.exercises.length - 1
       ? 'Finish Workout'
       : 'Next Exercise ▶';
+
+    // Show remove exercise button if this exercise has 0 sets completed and more than 1 exercise exists
+    if (btnRemoveExerciseActive) {
+      if (currentEx.sets.length === 0 && activeSession.exercises.length > 1) {
+        btnRemoveExerciseActive.style.display = 'inline-flex';
+      } else {
+        btnRemoveExerciseActive.style.display = 'none';
+      }
+    }
 
     // If rest is currently running, keep it visible
     if (activeSession.rest && activeSession.rest.active) {
@@ -1325,6 +1532,91 @@
     }
   });
 
+  // ── Dynamic Mid-Workout Exercise Addition & Variation ──
+  function openAddExerciseActiveModal() {
+    if (!activeSession) return;
+    if (activeNewExerciseName) {
+      activeNewExerciseName.value = '';
+      activeNewExerciseSets.value = '3';
+      activeNewExercisePosition.value = 'next';
+    }
+    if (modalAddExerciseActive) {
+      modalAddExerciseActive.hidden = false;
+      setTimeout(() => {
+        if (activeNewExerciseName) activeNewExerciseName.focus();
+      }, 50);
+    }
+  }
+
+  function confirmAddExerciseActive() {
+    if (!activeSession) return;
+    const name = (activeNewExerciseName ? activeNewExerciseName.value : '').trim();
+    if (!name) {
+      toast('Please enter an exercise name');
+      if (activeNewExerciseName) activeNewExerciseName.focus();
+      return;
+    }
+
+    const setsCount = parseInt(activeNewExerciseSets ? activeNewExerciseSets.value : '3', 10) || 3;
+    const targetSets = Math.max(1, Math.min(20, setsCount));
+    const pos = activeNewExercisePosition ? activeNewExercisePosition.value : 'next';
+
+    const newExercise = {
+      name,
+      targetSets,
+      sets: [],
+    };
+
+    if (pos === 'next') {
+      const insertIdx = activeSession.currentExerciseIndex + 1;
+      activeSession.exercises.splice(insertIdx, 0, newExercise);
+      activeSession.currentExerciseIndex = insertIdx;
+    } else {
+      activeSession.exercises.push(newExercise);
+      activeSession.currentExerciseIndex = activeSession.exercises.length - 1;
+    }
+
+    saveJSON('plates_active_session', activeSession);
+    if (modalAddExerciseActive) modalAddExerciseActive.hidden = true;
+    renderActiveWorkoutView();
+    toast(`Added "${name}" to this session!`);
+  }
+
+  if (btnAddExerciseActive) btnAddExerciseActive.addEventListener('click', openAddExerciseActiveModal);
+  if (btnConfirmAddExerciseActive) btnConfirmAddExerciseActive.addEventListener('click', confirmAddExerciseActive);
+  if (btnCancelAddExerciseActive) {
+    btnCancelAddExerciseActive.addEventListener('click', () => {
+      if (modalAddExerciseActive) modalAddExerciseActive.hidden = true;
+    });
+  }
+  if (modalAddExerciseActive) {
+    modalAddExerciseActive.addEventListener('click', (e) => {
+      if (e.target === modalAddExerciseActive) modalAddExerciseActive.hidden = true;
+    });
+  }
+  if (activeNewExerciseName) {
+    activeNewExerciseName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmAddExerciseActive();
+    });
+  }
+
+  if (btnRemoveExerciseActive) {
+    btnRemoveExerciseActive.addEventListener('click', () => {
+      if (!activeSession) return;
+      const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
+      if (!currentEx || currentEx.sets.length > 0) return;
+      if (!confirm(`Remove "${currentEx.name}" from this workout?`)) return;
+
+      activeSession.exercises.splice(activeSession.currentExerciseIndex, 1);
+      if (activeSession.currentExerciseIndex >= activeSession.exercises.length) {
+        activeSession.currentExerciseIndex = activeSession.exercises.length - 1;
+      }
+      saveJSON('plates_active_session', activeSession);
+      renderActiveWorkoutView();
+      toast(`Removed "${currentEx.name}"`);
+    });
+  }
+
   // ── Cancel / Discard Session ──
   btnCancelWorkout.addEventListener('click', () => {
     if (confirm('Discard this workout session? Any uncompleted sets will be lost.')) {
@@ -1397,6 +1689,7 @@
       id: uid(),
       routineId: activeSession.routineId,
       routineName: activeSession.routineName,
+      bodyPart: activeSession.bodyPart || inferBodyPart(activeSession.routineName, loggedExercises.map(e => e.name)),
       date: new Date(endedAt).toISOString(),
       durationSeconds,
       totalVolume: Math.round(totalVolume),
@@ -1467,10 +1760,14 @@
       const volume = Math.round(workoutVolume(entry));
       const volumeStr = volume ? ` · ${volume.toLocaleString()} ${weightUnit} volume` : '';
 
+      const bodyPart = entry.bodyPart || inferBodyPart(entry.routineName, (entry.exercises || []).map(e => e.name));
       return `
         <div class="history-card">
           <div class="history-date">${esc(dateStr + ' · ' + timeStr + durationStr + volumeStr)}</div>
-          <div class="history-routine-name">${esc(entry.routineName)}</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span class="routine-bodypart-badge">${esc(bodyPart)}</span>
+            <div class="history-routine-name" style="margin-bottom:0;">${esc(entry.routineName)}</div>
+          </div>
           <div class="history-exercises">
             ${entry.exercises.map(ex => `
               <div class="history-exercise">
@@ -1602,6 +1899,7 @@
         importedRoutines.forEach(r => {
           const nameKey = (r.name || '').trim().toLowerCase();
           if (!existingRoutineIds.has(r.id) && !existingRoutineNames.has(nameKey)) {
+            if (!r.bodyPart) r.bodyPart = inferBodyPart(r.name, r.exercises);
             routines.push(r);
             existingRoutineIds.add(r.id);
             existingRoutineNames.add(nameKey);
@@ -1617,6 +1915,7 @@
           const sig = `${h.date}_${h.routineName}`;
           if (!existingHistIds.has(h.id) && !existingSignatures.has(sig)) {
             if (!h.id) h.id = uid();
+            if (!h.bodyPart) h.bodyPart = inferBodyPart(h.routineName, (h.exercises || []).map(e => e.name));
             history.push(h);
             existingHistIds.add(h.id);
             existingSignatures.add(sig);
@@ -2005,11 +2304,11 @@
       return;
     }
 
-    // Aggregate sessions by routineName
+    // Aggregate sessions by bodyPart
     const routineCounts = {};
     history.forEach(entry => {
-      const name = (entry.routineName || 'Custom Workout').trim();
-      routineCounts[name] = (routineCounts[name] || 0) + 1;
+      const part = (entry.bodyPart || inferBodyPart(entry.routineName, (entry.exercises || []).map(e => e.name))).trim();
+      routineCounts[part] = (routineCounts[part] || 0) + 1;
     });
 
     const entries = Object.entries(routineCounts).sort((a, b) => b[1] - a[1]);
@@ -2283,7 +2582,10 @@
           return `
             <div class="recent-session-card">
               <div class="recent-session-top">
-                <div class="recent-session-routine">${esc(h.routineName)}</div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="routine-bodypart-badge" style="margin-bottom:0;">${esc(h.bodyPart || inferBodyPart(h.routineName, (h.exercises || []).map(e => e.name)))}</span>
+                  <div class="recent-session-routine">${esc(h.routineName)}</div>
+                </div>
                 <div class="recent-session-date">${dateStr}</div>
               </div>
               <div class="recent-session-meta">

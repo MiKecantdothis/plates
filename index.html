@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=18" />
+  <link rel="stylesheet" href="index.css?v=19" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -344,10 +344,24 @@
 
       <div class="section-header">
         <div>
-          <h1>Choose Routine</h1>
-          <p class="subtitle" style="margin-bottom:0">Select a routine below to launch your guided workout session.</p>
+          <h1>Workouts by Body Part</h1>
+          <p class="subtitle" style="margin-bottom:0">Select a workout organized by muscle group to launch your session.</p>
         </div>
         <button id="btn-add-routine" class="btn-primary">+ Add Routine</button>
+      </div>
+
+      <!-- Body Part Filter Chips -->
+      <div class="bodypart-filters-bar">
+        <div class="bodypart-filters" id="bodypart-filters" role="tablist" aria-label="Filter workouts by body part">
+          <button type="button" class="bodypart-chip active" data-part="all">All</button>
+          <button type="button" class="bodypart-chip" data-part="Chest">Chest</button>
+          <button type="button" class="bodypart-chip" data-part="Back">Back</button>
+          <button type="button" class="bodypart-chip" data-part="Legs">Legs</button>
+          <button type="button" class="bodypart-chip" data-part="Shoulders">Shoulders</button>
+          <button type="button" class="bodypart-chip" data-part="Arms">Arms</button>
+          <button type="button" class="bodypart-chip" data-part="Core">Core</button>
+          <button type="button" class="bodypart-chip" data-part="Full Body">Full Body</button>
+        </div>
       </div>
 
       <div id="routines-grid" class="routines-grid" style="margin-top: 18px">
@@ -502,8 +516,12 @@
 
           <!-- Exercise Navigation Controls -->
           <div class="exercise-nav-footer">
-            <button id="btn-add-extra-set" class="btn-secondary btn-small">+ Extra Set</button>
-            <div style="display: flex; gap: 8px">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button id="btn-add-extra-set" class="btn-secondary btn-small">+ Extra Set</button>
+              <button id="btn-add-exercise-active" class="btn-secondary btn-small" title="Dynamically add an exercise variation">+ Add Exercise</button>
+              <button id="btn-remove-exercise-active" class="btn-danger btn-small" style="display: none;" title="Remove this empty exercise from session">Remove Exercise</button>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button id="btn-prev-exercise" class="btn-secondary btn-small">◀ Prev Exercise</button>
               <button id="btn-next-exercise" class="btn-secondary btn-small">Next Exercise ▶</button>
             </div>
@@ -582,6 +600,18 @@
         <label for="routine-name">Routine Name</label>
         <input type="text" id="routine-name" placeholder="e.g. Chest & Triceps" maxlength="40" />
       </div>
+      <div class="form-group">
+        <label for="routine-body-part">Target Body Part</label>
+        <select id="routine-body-part">
+          <option value="Chest">Chest</option>
+          <option value="Back">Back</option>
+          <option value="Legs">Legs</option>
+          <option value="Shoulders">Shoulders</option>
+          <option value="Arms">Arms</option>
+          <option value="Core">Core</option>
+          <option value="Full Body">Full Body</option>
+        </select>
+      </div>
       <div id="exercise-list" class="exercise-list">
         <!-- exercise rows injected by JS -->
       </div>
@@ -589,6 +619,33 @@
       <div class="modal-actions">
         <button id="btn-save-routine" class="btn-primary">Save</button>
         <button id="btn-cancel-routine" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── Modal: Add Exercise During Active Workout ───── -->
+  <div id="modal-add-exercise-active" class="modal-overlay" hidden>
+    <div class="modal">
+      <h2>Add Exercise Variation</h2>
+      <p class="subtitle" style="margin-bottom: 14px">Dynamically add an exercise or variation to your active workout session.</p>
+      <div class="form-group">
+        <label for="active-new-exercise-name">Exercise Name</label>
+        <input type="text" id="active-new-exercise-name" placeholder="e.g. Incline Dumbbell Flyes, Lateral Raise" maxlength="50" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="active-new-exercise-sets">Target Sets</label>
+        <input type="number" id="active-new-exercise-sets" value="3" min="1" max="20" />
+      </div>
+      <div class="form-group">
+        <label for="active-new-exercise-position">Workout Position</label>
+        <select id="active-new-exercise-position">
+          <option value="next">Next (Right after current exercise)</option>
+          <option value="end">At the end of workout</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="btn-confirm-add-exercise-active" class="btn-primary">Add Exercise ▶</button>
+        <button type="button" id="btn-cancel-add-exercise-active" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>
@@ -641,7 +698,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=18"></script>
+  <script src="app.js?v=19"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

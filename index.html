@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=19" />
+  <link rel="stylesheet" href="index.css?v=20" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -344,8 +344,8 @@
 
       <div class="section-header">
         <div>
-          <h1>Workouts by Body Part</h1>
-          <p class="subtitle" style="margin-bottom:0">Select a workout organized by muscle group to launch your session.</p>
+          <h1>Workouts & Routines</h1>
+          <p class="subtitle" style="margin-bottom:0">Select a workout routine or filter by muscle group to launch your session.</p>
         </div>
         <button id="btn-add-routine" class="btn-primary">+ Add Routine</button>
       </div>
@@ -431,6 +431,9 @@
           <div class="active-exercise-header">
             <div>
               <div class="active-exercise-step-label" id="active-step-label">Exercise 1 of 4</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                <span class="routine-bodypart-badge active-bodypart-badge" id="active-exercise-bodypart">Chest</span>
+              </div>
               <h2 class="active-exercise-title" id="active-exercise-name">Barbell Bench Press</h2>
             </div>
             <div class="active-set-badge" id="active-set-counter">Set 1 of 3</div>
@@ -598,20 +601,9 @@
       <h2 id="modal-routine-title">Add Routine</h2>
       <div class="form-group">
         <label for="routine-name">Routine Name</label>
-        <input type="text" id="routine-name" placeholder="e.g. Chest & Triceps" maxlength="40" />
+        <input type="text" id="routine-name" placeholder="e.g. Push Day, Upper Body A" maxlength="40" />
       </div>
-      <div class="form-group">
-        <label for="routine-body-part">Target Body Part</label>
-        <select id="routine-body-part">
-          <option value="Chest">Chest</option>
-          <option value="Back">Back</option>
-          <option value="Legs">Legs</option>
-          <option value="Shoulders">Shoulders</option>
-          <option value="Arms">Arms</option>
-          <option value="Core">Core</option>
-          <option value="Full Body">Full Body</option>
-        </select>
-      </div>
+      <div class="form-group-label" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Exercises & Muscle Groups</div>
       <div id="exercise-list" class="exercise-list">
         <!-- exercise rows injected by JS -->
       </div>
@@ -630,7 +622,19 @@
       <p class="subtitle" style="margin-bottom: 14px">Dynamically add an exercise or variation to your active workout session.</p>
       <div class="form-group">
         <label for="active-new-exercise-name">Exercise Name</label>
-        <input type="text" id="active-new-exercise-name" placeholder="e.g. Incline Dumbbell Flyes, Lateral Raise" maxlength="50" autocomplete="off" />
+        <input type="text" id="active-new-exercise-name" placeholder="e.g. Deadlift, Incline Dumbbell Flyes" maxlength="50" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="active-new-exercise-bodypart">Target Body Part</label>
+        <select id="active-new-exercise-bodypart">
+          <option value="Chest">Chest</option>
+          <option value="Back">Back</option>
+          <option value="Legs">Legs</option>
+          <option value="Shoulders">Shoulders</option>
+          <option value="Arms">Arms</option>
+          <option value="Core">Core</option>
+          <option value="Full Body">Full Body</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="active-new-exercise-sets">Target Sets</label>
@@ -698,7 +702,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

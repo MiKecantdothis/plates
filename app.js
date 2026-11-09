@@ -47,59 +47,147 @@
   // Body Parts taxonomy
   const BODY_PARTS = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
 
-  function inferBodyPart(name = '', exercises = []) {
-    const text = `${name} ${Array.isArray(exercises) ? exercises.join(' ') : ''}`.toLowerCase();
-    if (/chest|bench|push|pec|fly|dip/i.test(text)) return 'Chest';
-    if (/back|pull|lat|row|deadlift/i.test(text)) return 'Back';
-    if (/leg|squat|quad|hamstring|calf|calves|lunge/i.test(text)) return 'Legs';
-    if (/shoulder|delt|overhead|military|press|shrug/i.test(text)) return 'Shoulders';
-    if (/arm|bicep|tricep|curl|skull/i.test(text)) return 'Arms';
-    if (/core|ab|abs|plank|crunch/i.test(text)) return 'Core';
+  // Smart exercise-to-body-part inference with explicit Deadlift -> Back mapping
+  function inferExerciseBodyPart(name = '') {
+    const n = String(name || '').toLowerCase().trim();
+    if (!n) return 'Full Body';
+
+    // 1. Deadlift variations explicitly map to Back
+    if (/deadlift/i.test(n)) return 'Back';
+
+    // 2. Chest
+    if (/bench|chest|pec\b|pecs|fly\b|flyes|flye|crossover|pushup|push-up/i.test(n)) return 'Chest';
+
+    // 3. Back
+    if (/pulldown|pull-down|lat\b|pullup|pull-up|chinup|chin-up|row\b|rowing|rows|shrug|face pull|hyperextension/i.test(n)) return 'Back';
+
+    // 4. Legs
+    if (/squat|lunge|leg\b|legs|calf|calves|quad|hamstring|hamstrings|rdl|hip thrust|hack/i.test(n)) return 'Legs';
+
+    // 5. Shoulders
+    if (/overhead|military|shoulder|lateral raise|side raise|front raise|rear delt|deltoid|arnold press|upright row/i.test(n)) return 'Shoulders';
+
+    // 6. Arms
+    if (/curl|bicep|tricep|skull crusher|skullcrusher|pushdown|push-down|kickback|arm\b|arms/i.test(n)) return 'Arms';
+
+    // 7. Core
+    if (/plank|ab\b|abs|core|crunch|crunches|sit-up|situp|woodchopper|leg raise|rollout|twist|hollow/i.test(n)) return 'Core';
+
+    // Secondary fallbacks
+    if (/\bpress\b/i.test(n)) return 'Chest';
+    if (/\bpull\b/i.test(n)) return 'Back';
+
     return 'Full Body';
   }
 
-  // Default seed routines organized per body part if the user has none yet
+  function exerciseKey(name) {
+    return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function getExerciseName(ex) {
+    if (!ex) return '';
+    return typeof ex === 'string' ? ex : (ex.name || '');
+  }
+
+  function getExerciseBodyPart(ex, routine = null) {
+    if (!ex) return 'Full Body';
+    if (typeof ex === 'object' && ex.bodyPart) return ex.bodyPart;
+    const name = getExerciseName(ex);
+    if (routine && routine.exerciseBodyParts && routine.exerciseBodyParts[name]) {
+      return routine.exerciseBodyParts[name];
+    }
+    const key = exerciseKey(name);
+    if (customExerciseBodyParts && customExerciseBodyParts[key]) {
+      return customExerciseBodyParts[key];
+    }
+    return inferExerciseBodyPart(name);
+  }
+
+  function inferBodyPart(routineName = '', exercises = []) {
+    if (exercises && exercises.length > 0) {
+      const counts = {};
+      exercises.forEach(ex => {
+        const part = getExerciseBodyPart(ex);
+        if (part && part !== 'Full Body') counts[part] = (counts[part] || 0) + 1;
+      });
+      const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      if (sorted.length > 0) return sorted[0][0];
+    }
+    return inferExerciseBodyPart(routineName);
+  }
+
+  // Default seed routines with each exercise mapped to its body part
   const DEFAULT_ROUTINES = [
     {
       id: 'default-push',
-      name: 'Push Day (Chest & Triceps)',
-      bodyPart: 'Chest',
+      name: 'Push Day (Chest, Shoulders & Triceps)',
       exercises: ['Barbell Bench Press', 'Incline Dumbbell Press', 'Overhead Shoulder Press', 'Cable Tricep Pushdown'],
+      exerciseBodyParts: {
+        'Barbell Bench Press': 'Chest',
+        'Incline Dumbbell Press': 'Chest',
+        'Overhead Shoulder Press': 'Shoulders',
+        'Cable Tricep Pushdown': 'Arms',
+      },
       defaultSets: 3,
     },
     {
       id: 'default-pull',
       name: 'Pull Day (Back & Biceps)',
-      bodyPart: 'Back',
       exercises: ['Conventional Deadlift', 'Wide-Grip Lat Pulldown', 'Bent-Over Barbell Row', 'Incline Dumbbell Curl'],
+      exerciseBodyParts: {
+        'Conventional Deadlift': 'Back',
+        'Wide-Grip Lat Pulldown': 'Back',
+        'Bent-Over Barbell Row': 'Back',
+        'Incline Dumbbell Curl': 'Arms',
+      },
       defaultSets: 3,
     },
     {
       id: 'default-legs',
-      name: 'Leg Day (Quads & Hamstrings)',
-      bodyPart: 'Legs',
+      name: 'Leg Day (Quads, Hamstrings & Calves)',
       exercises: ['Barbell Back Squat', 'Romanian Deadlift', 'Leg Press Machine', 'Standing Calf Raises'],
+      exerciseBodyParts: {
+        'Barbell Back Squat': 'Legs',
+        'Romanian Deadlift': 'Back',
+        'Leg Press Machine': 'Legs',
+        'Standing Calf Raises': 'Legs',
+      },
       defaultSets: 3,
     },
     {
       id: 'default-shoulders',
       name: 'Shoulders & Traps',
-      bodyPart: 'Shoulders',
       exercises: ['Overhead Barbell Press', 'Dumbbell Lateral Raise', 'Face Pulls', 'Dumbbell Shrugs'],
+      exerciseBodyParts: {
+        'Overhead Barbell Press': 'Shoulders',
+        'Dumbbell Lateral Raise': 'Shoulders',
+        'Face Pulls': 'Shoulders',
+        'Dumbbell Shrugs': 'Back',
+      },
       defaultSets: 3,
     },
     {
       id: 'default-arms',
       name: 'Arms (Biceps & Triceps)',
-      bodyPart: 'Arms',
       exercises: ['Barbell Bicep Curl', 'Skull Crushers', 'Hammer Curls', 'Tricep Rope Pushdown'],
+      exerciseBodyParts: {
+        'Barbell Bicep Curl': 'Arms',
+        'Skull Crushers': 'Arms',
+        'Hammer Curls': 'Arms',
+        'Tricep Rope Pushdown': 'Arms',
+      },
       defaultSets: 3,
     },
     {
       id: 'default-core',
       name: 'Core & Abs',
-      bodyPart: 'Core',
       exercises: ['Hanging Leg Raise', 'Cable Woodchoppers', 'Plank Hold', 'Ab Wheel Rollout'],
+      exerciseBodyParts: {
+        'Hanging Leg Raise': 'Core',
+        'Cable Woodchoppers': 'Core',
+        'Plank Hold': 'Core',
+        'Ab Wheel Rollout': 'Core',
+      },
       defaultSets: 3,
     },
   ];
@@ -177,16 +265,22 @@
         }
       }
 
-      // 4. Ensure all routines have a bodyPart assigned
+      // 4. Ensure all routines have exerciseBodyParts mapping
       const rawRoutines = localStorage.getItem('plates_routines');
       if (rawRoutines) {
         let routinesData = JSON.parse(rawRoutines);
         if (Array.isArray(routinesData)) {
           let routinesModified = false;
           routinesData.forEach(r => {
-            if (r && !r.bodyPart) {
-              r.bodyPart = inferBodyPart(r.name, r.exercises);
-              routinesModified = true;
+            if (r && Array.isArray(r.exercises)) {
+              if (!r.exerciseBodyParts) {
+                r.exerciseBodyParts = {};
+                r.exercises.forEach(e => {
+                  const name = getExerciseName(e);
+                  r.exerciseBodyParts[name] = inferExerciseBodyPart(name);
+                });
+                routinesModified = true;
+              }
             }
           });
           if (routinesModified) {
@@ -199,9 +293,11 @@
     }
   }
 
+  // ── State Management ──
+  let customExerciseBodyParts = loadJSON('plates_exercise_body_parts', {});
+
   runDataMigrations();
 
-  // ── State Management ──
   let routines     = loadJSON('plates_routines', null);
   if (!routines || routines.length === 0) {
     routines = DEFAULT_ROUTINES;
@@ -209,9 +305,15 @@
   } else {
     let routinesUpdated = false;
     routines.forEach(r => {
-      if (r && !r.bodyPart) {
-        r.bodyPart = inferBodyPart(r.name, r.exercises);
-        routinesUpdated = true;
+      if (r && Array.isArray(r.exercises)) {
+        if (!r.exerciseBodyParts) {
+          r.exerciseBodyParts = {};
+          r.exercises.forEach(e => {
+            const name = getExerciseName(e);
+            r.exerciseBodyParts[name] = inferExerciseBodyPart(name);
+          });
+          routinesUpdated = true;
+        }
       }
     });
     if (routinesUpdated) {
@@ -331,6 +433,7 @@
   const exerciseStepper    = $('#exercise-stepper');
   const activeStepLabel    = $('#active-step-label');
   const activeExerciseName = $('#active-exercise-name');
+  const activeExerciseBodypart = $('#active-exercise-bodypart');
   const activeSetCounter   = $('#active-set-counter');
   const setIndicatorDots   = $('#set-indicator-dots');
   const lastTimeEl         = $('#last-time');
@@ -364,6 +467,7 @@
   // Modal: Add Exercise During Active Workout
   const modalAddExerciseActive      = $('#modal-add-exercise-active');
   const activeNewExerciseName       = $('#active-new-exercise-name');
+  const activeNewExerciseBodypart   = $('#active-new-exercise-bodypart');
   const activeNewExerciseSets       = $('#active-new-exercise-sets');
   const activeNewExercisePosition   = $('#active-new-exercise-position');
   const btnConfirmAddExerciseActive = $('#btn-confirm-add-exercise-active');
@@ -498,9 +602,6 @@
     return (entry.exercises || []).reduce((sum, ex) =>
       sum + (ex.sets || []).reduce((acc, s) => acc + shownWeight(s, entry) * (Number(s.reps) || 0), 0), 0);
   }
-
-  // Exercise names are typed freely, so match them loosely
-  const exerciseKey = (name) => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
   // The sets from the most recent finished workout that included this exercise
   function lastTimeFor(name) {
@@ -726,11 +827,19 @@
   // ══════════════════════════════════════════
 
   function renderRoutineCardHtml(r) {
+    const exerciseParts = (r.exercises || []).map(e => getExerciseBodyPart(e, r));
+    const uniqueParts = [...new Set(exerciseParts.filter(Boolean))];
+    const badgesHtml = uniqueParts.length > 0
+      ? uniqueParts.map(bp => `<span class="routine-bodypart-badge">${esc(bp)}</span>`).join('')
+      : `<span class="routine-bodypart-badge">${esc(r.bodyPart || 'Full Body')}</span>`;
+
     return `
       <div class="routine-card" data-id="${esc(r.id)}">
         <div class="routine-card-header">
           <div>
-            <span class="routine-bodypart-badge">${esc(r.bodyPart || inferBodyPart(r.name, r.exercises))}</span>
+            <div class="routine-bodyparts-row">
+              ${badgesHtml}
+            </div>
             <div class="routine-card-title">${esc(r.name)}</div>
           </div>
           <div class="routine-card-actions">
@@ -750,7 +859,11 @@
         </div>
 
         <ul class="routine-card-exercises">
-          ${r.exercises.slice(0, 4).map(e => `<li>${esc(e)}</li>`).join('')}
+          ${(r.exercises || []).slice(0, 4).map(e => {
+            const exName = getExerciseName(e);
+            const exPart = getExerciseBodyPart(e, r);
+            return `<li><span>${esc(exName)}</span><span class="routine-card-ex-tag">${esc(exPart)}</span></li>`;
+          }).join('')}
           ${r.exercises.length > 4 ? `<li style="color:var(--text-muted)">+${r.exercises.length - 4} more</li>` : ''}
         </ul>
 
@@ -823,12 +936,15 @@
         </div>
       `).join('');
     } else {
-      const filtered = routines.filter(r => (r.bodyPart || inferBodyPart(r.name, r.exercises)).toLowerCase() === selectedBodyPartFilter.toLowerCase());
+      const filtered = routines.filter(r =>
+        (r.exercises || []).some(e => getExerciseBodyPart(e, r).toLowerCase() === selectedBodyPartFilter.toLowerCase()) ||
+        ((r.bodyPart || '').toLowerCase() === selectedBodyPartFilter.toLowerCase())
+      );
       if (filtered.length === 0) {
         html = `
           <div class="empty-state" style="padding: 36px 16px;">
-            <p class="empty-state-text">No ${esc(selectedBodyPartFilter)} workouts created yet.</p>
-            <button type="button" class="btn-primary btn-small" id="btn-add-specific-bodypart" style="margin-top: 14px">+ Add ${esc(selectedBodyPartFilter)} Workout</button>
+            <p class="empty-state-text">No workouts targeting ${esc(selectedBodyPartFilter)} found.</p>
+            <button type="button" class="btn-primary btn-small" id="btn-add-specific-bodypart" style="margin-top: 14px">+ Add Routine</button>
           </div>
         `;
       } else {
@@ -836,7 +952,7 @@
           <div class="bodypart-group" data-bodypart="${esc(selectedBodyPartFilter)}">
             <div class="bodypart-group-header">
               <div class="bodypart-group-title">
-                <span class="bodypart-group-name">${esc(selectedBodyPartFilter)}</span>
+                <span class="bodypart-group-name">${esc(selectedBodyPartFilter)} Workouts</span>
                 <span class="bodypart-group-count">${filtered.length} workout${filtered.length !== 1 ? 's' : ''}</span>
               </div>
             </div>
@@ -919,34 +1035,58 @@
     modalRoutineTitle.textContent = routine ? 'Edit Routine' : 'Add Routine';
     routineNameInput.value = routine ? routine.name : '';
 
-    if (routineBodyPartSelect) {
-      if (routine && routine.bodyPart) {
-        routineBodyPartSelect.value = routine.bodyPart;
-      } else if (selectedBodyPartFilter && selectedBodyPartFilter !== 'all') {
-        routineBodyPartSelect.value = selectedBodyPartFilter;
-      } else {
-        routineBodyPartSelect.value = 'Chest';
-      }
-    }
-
     exerciseList.innerHTML = '';
 
-    const list = routine ? routine.exercises : ['', ''];
-    list.forEach(ex => addExerciseInputRow(ex));
+    if (routine && routine.exercises && routine.exercises.length > 0) {
+      routine.exercises.forEach(ex => {
+        const exName = getExerciseName(ex);
+        const exPart = getExerciseBodyPart(ex, routine);
+        addExerciseInputRow(exName, exPart);
+      });
+    } else {
+      const defaultPart = selectedBodyPartFilter !== 'all' ? selectedBodyPartFilter : 'Chest';
+      addExerciseInputRow('', defaultPart);
+      addExerciseInputRow('', defaultPart);
+    }
 
     modalRoutine.hidden = false;
     routineNameInput.focus();
   }
 
-  function addExerciseInputRow(value = '') {
+  function addExerciseInputRow(value = '', bodyPart = null) {
     const row = document.createElement('div');
     row.className = 'exercise-row';
+    const initialPart = bodyPart || inferExerciseBodyPart(value);
+
+    const optionsHtml = BODY_PARTS.map(bp =>
+      `<option value="${esc(bp)}" ${bp.toLowerCase() === initialPart.toLowerCase() ? 'selected' : ''}>${esc(bp)}</option>`
+    ).join('');
+
     row.innerHTML = `
-      <input type="text" placeholder="Exercise name (e.g. Incline Bench Press)" maxlength="50" />
+      <input type="text" class="exercise-name-input" placeholder="Exercise name (e.g. Incline Bench Press)" maxlength="50" />
+      <select class="exercise-bodypart-select" title="Target body part">
+        ${optionsHtml}
+      </select>
       <button type="button" class="btn-icon danger" title="Remove">✕</button>
     `;
-    // Set the name as a value, not as HTML, so a name like 3" Deficit Deadlift stays whole.
-    row.querySelector('input').value = value;
+
+    const input = row.querySelector('.exercise-name-input');
+    const select = row.querySelector('.exercise-bodypart-select');
+    // Set value as property to preserve characters like quotes
+    input.value = value;
+
+    let manualChoice = Boolean(value && bodyPart);
+
+    select.addEventListener('change', () => {
+      manualChoice = true;
+    });
+
+    input.addEventListener('input', () => {
+      if (!manualChoice) {
+        select.value = inferExerciseBodyPart(input.value);
+      }
+    });
+
     row.querySelector('.btn-icon').addEventListener('click', () => row.remove());
     exerciseList.appendChild(row);
   }
@@ -961,29 +1101,43 @@
     const name = routineNameInput.value.trim();
     if (!name) { toast('Enter a routine name'); return; }
 
-    const exercises = [...exerciseList.querySelectorAll('input')]
-      .map(i => i.value.trim())
-      .filter(Boolean);
+    const rows = [...exerciseList.querySelectorAll('.exercise-row')];
+    const exercises = [];
+    const exerciseBodyParts = {};
+
+    rows.forEach(r => {
+      const inEl = r.querySelector('.exercise-name-input') || r.querySelector('input');
+      const selEl = r.querySelector('.exercise-bodypart-select') || r.querySelector('select');
+      const exName = inEl ? inEl.value.trim() : '';
+      if (exName) {
+        exercises.push(exName);
+        const part = selEl ? selEl.value : inferExerciseBodyPart(exName);
+        exerciseBodyParts[exName] = part;
+        customExerciseBodyParts[exerciseKey(exName)] = part;
+      }
+    });
 
     if (exercises.length === 0) { toast('Add at least one exercise'); return; }
 
-    const bodyPart = (routineBodyPartSelect && routineBodyPartSelect.value)
-      ? routineBodyPartSelect.value
-      : inferBodyPart(name, exercises);
+    saveJSON('plates_exercise_body_parts', customExerciseBodyParts);
+
+    const primaryBodyPart = inferBodyPart(name, exercises);
 
     if (editingRoutineId) {
       const r = routines.find(r => r.id === editingRoutineId);
       if (r) {
         r.name = name;
-        r.bodyPart = bodyPart;
+        r.bodyPart = primaryBodyPart;
         r.exercises = exercises;
+        r.exerciseBodyParts = exerciseBodyParts;
       }
     } else {
       routines.push({
         id: uid(),
         name,
-        bodyPart,
+        bodyPart: primaryBodyPart,
         exercises,
+        exerciseBodyParts,
         defaultSets: 3,
       });
     }
@@ -1027,11 +1181,16 @@
       startTime: Date.now(),
       elapsedSeconds: 0,
       currentExerciseIndex: 0,
-      exercises: routine.exercises.map(exName => ({
-        name: exName,
-        targetSets: routine.defaultSets || 3,
-        sets: [],
-      })),
+      exercises: routine.exercises.map(ex => {
+        const exName = getExerciseName(ex);
+        const exPart = getExerciseBodyPart(ex, routine);
+        return {
+          name: exName,
+          bodyPart: exPart,
+          targetSets: routine.defaultSets || 3,
+          sets: [],
+        };
+      }),
       rest: {
         active: false,
         remain: 0,
@@ -1184,6 +1343,9 @@
     // Current Exercise Card Details
     activeStepLabel.textContent = `Exercise ${activeSession.currentExerciseIndex + 1} of ${activeSession.exercises.length}`;
     activeExerciseName.textContent = currentEx.name;
+    if (activeExerciseBodypart) {
+      activeExerciseBodypart.textContent = currentEx.bodyPart || getExerciseBodyPart(currentEx.name, activeSession);
+    }
 
     const currentSetNum = currentEx.sets.length + 1;
     const isOverTarget = currentSetNum > currentEx.targetSets;
@@ -1533,19 +1695,34 @@
   });
 
   // ── Dynamic Mid-Workout Exercise Addition & Variation ──
+  let activeNewExerciseBodypartManual = false;
   function openAddExerciseActiveModal() {
     if (!activeSession) return;
+    activeNewExerciseBodypartManual = false;
     if (activeNewExerciseName) {
       activeNewExerciseName.value = '';
+      if (activeNewExerciseBodypart) activeNewExerciseBodypart.value = 'Chest';
       activeNewExerciseSets.value = '3';
       activeNewExercisePosition.value = 'next';
     }
     if (modalAddExerciseActive) {
       modalAddExerciseActive.hidden = false;
-      setTimeout(() => {
-        if (activeNewExerciseName) activeNewExerciseName.focus();
-      }, 50);
+      if (activeNewExerciseName) activeNewExerciseName.focus();
     }
+  }
+
+  if (activeNewExerciseBodypart) {
+    activeNewExerciseBodypart.addEventListener('change', () => {
+      activeNewExerciseBodypartManual = true;
+    });
+  }
+
+  if (activeNewExerciseName) {
+    activeNewExerciseName.addEventListener('input', () => {
+      if (!activeNewExerciseBodypartManual && activeNewExerciseBodypart) {
+        activeNewExerciseBodypart.value = inferExerciseBodyPart(activeNewExerciseName.value);
+      }
+    });
   }
 
   function confirmAddExerciseActive() {
@@ -1557,12 +1734,17 @@
       return;
     }
 
+    const bodyPart = activeNewExerciseBodypart ? activeNewExerciseBodypart.value : inferExerciseBodyPart(name);
     const setsCount = parseInt(activeNewExerciseSets ? activeNewExerciseSets.value : '3', 10) || 3;
     const targetSets = Math.max(1, Math.min(20, setsCount));
     const pos = activeNewExercisePosition ? activeNewExercisePosition.value : 'next';
 
+    customExerciseBodyParts[exerciseKey(name)] = bodyPart;
+    saveJSON('plates_exercise_body_parts', customExerciseBodyParts);
+
     const newExercise = {
       name,
+      bodyPart,
       targetSets,
       sets: [],
     };
@@ -1579,7 +1761,7 @@
     saveJSON('plates_active_session', activeSession);
     if (modalAddExerciseActive) modalAddExerciseActive.hidden = true;
     renderActiveWorkoutView();
-    toast(`Added "${name}" to this session!`);
+    toast(`Added "${name}" (${bodyPart}) to this session!`);
   }
 
   if (btnAddExerciseActive) btnAddExerciseActive.addEventListener('click', openAddExerciseActiveModal);
@@ -1662,6 +1844,7 @@
         });
         loggedExercises.push({
           name: ex.name,
+          bodyPart: ex.bodyPart || getExerciseBodyPart(ex.name, activeSession),
           sets: ex.sets,
         });
       }
@@ -1709,12 +1892,18 @@
     completeVolume.textContent = `${Math.round(totalVolume).toLocaleString()} ${weightUnit}`;
     completeSets.textContent = totalSets;
 
-    completeExercises.innerHTML = loggedExercises.map(ex => `
+    completeExercises.innerHTML = loggedExercises.map(ex => {
+      const part = ex.bodyPart || getExerciseBodyPart(ex.name);
+      return `
       <div class="completed-summary-item">
-        <strong>${esc(ex.name)}</strong>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <strong>${esc(ex.name)}</strong>
+          <span class="routine-card-ex-tag">${esc(part)}</span>
+        </div>
         <span>${ex.sets.length} sets (${ex.sets.map(s => `${esc(fmtWeight(s))}×${esc(s.reps)}`).join(', ')} ${weightUnit})</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     modalComplete.hidden = false;
 
@@ -1769,12 +1958,17 @@
             <div class="history-routine-name" style="margin-bottom:0;">${esc(entry.routineName)}</div>
           </div>
           <div class="history-exercises">
-            ${entry.exercises.map(ex => `
+            ${entry.exercises.map(ex => {
+              const part = ex.bodyPart || getExerciseBodyPart(ex.name, entry);
+              return `
               <div class="history-exercise">
-                <span class="history-exercise-name">${esc(ex.name)}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="history-exercise-name">${esc(ex.name)}</span>
+                  <span class="routine-card-ex-tag">${esc(part)}</span>
+                </div>
                 <span>${ex.sets.map(s => `${esc(fmtWeight(s))} ${weightUnit} × ${esc(s.reps)}`).join(' · ')}</span>
-              </div>
-            `).join('')}
+              </div>`;
+            }).join('')}
           </div>
         </div>`;
     }).join('');
@@ -2304,20 +2498,23 @@
       return;
     }
 
-    // Aggregate sessions by bodyPart
-    const routineCounts = {};
+    // Aggregate sets by exercise bodyPart for accurate muscle group volume split
+    const bodyPartCounts = {};
     history.forEach(entry => {
-      const part = (entry.bodyPart || inferBodyPart(entry.routineName, (entry.exercises || []).map(e => e.name))).trim();
-      routineCounts[part] = (routineCounts[part] || 0) + 1;
+      (entry.exercises || []).forEach(ex => {
+        const part = (ex.bodyPart || getExerciseBodyPart(ex.name, entry)).trim();
+        const setCount = (ex.sets && ex.sets.length) ? ex.sets.length : 1;
+        bodyPartCounts[part] = (bodyPartCounts[part] || 0) + setCount;
+      });
     });
 
-    const entries = Object.entries(routineCounts).sort((a, b) => b[1] - a[1]);
+    const entries = Object.entries(bodyPartCounts).sort((a, b) => b[1] - a[1]);
     const labels = entries.map(e => e[0]);
     const counts = entries.map(e => e[1]);
-    const totalSessions = counts.reduce((a, b) => a + b, 0);
+    const totalSets = counts.reduce((a, b) => a + b, 0);
 
     if (splitTotalSessions) {
-      splitTotalSessions.textContent = `${totalSessions} Session${totalSessions > 1 ? 's' : ''}`;
+      splitTotalSessions.textContent = `${totalSets} Set${totalSets !== 1 ? 's' : ''}`;
     }
 
     if (chartSplitEmpty) chartSplitEmpty.hidden = true;
@@ -2378,8 +2575,8 @@
             callbacks: {
               label: (item) => {
                 const val = item.parsed;
-                const pct = Math.round((val / totalSessions) * 100);
-                return ` ${item.label}: ${val} session${val > 1 ? 's' : ''} (${pct}%)`;
+                const pct = totalSets > 0 ? Math.round((val / totalSets) * 100) : 0;
+                return ` ${item.label}: ${val} set${val > 1 ? 's' : ''} (${pct}%)`;
               }
             }
           }

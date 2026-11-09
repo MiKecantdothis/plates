@@ -2744,3 +2744,93 @@ body {
 .backup-safety-card {
   border-left: 3px solid #ffffff;
 }
+
+/* ── Tracking Mode Selector & Dynamic Distance Units ── */
+.logger-mode-selector {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.logger-mode-selector::-webkit-scrollbar {
+  display: none;
+}
+.mode-pill {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  line-height: 1.3;
+}
+.mode-pill:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+.mode-pill.active {
+  background: var(--text-primary);
+  color: var(--bg-base);
+  border-color: var(--text-primary);
+}
+.distance-unit-toggle {
+  display: flex;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.distance-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.distance-btn:hover {
+  color: var(--text-primary);
+}
+.distance-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-base);
+}
+.exercise-mode-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: all var(--transition-fast);
+  width: 95px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.exercise-mode-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+@media (max-width: 480px) {
+  .exercise-mode-select {
+    width: 80px;
+    padding: 10px 4px;
+    font-size: 11px;
+  }
+}
+

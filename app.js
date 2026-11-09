@@ -116,6 +116,43 @@
     return inferExerciseBodyPart(routineName);
   }
 
+  // Tracking mode inference: 'weight' | 'bodyweight' | 'distance' | 'time'
+  function inferExerciseMode(name = '') {
+    const n = String(name || '').toLowerCase().trim();
+    if (!n) return 'weight';
+
+    // 1. Distance / Height / Explosive
+    if (/box jump|broad jump|jump\b|jumps\b|bounding|bound\b|bounds\b|hop\b|hops\b|hurdle|plyo|explosive/i.test(n)) {
+      return 'distance';
+    }
+
+    // 2. Bodyweight / Calisthenics
+    if (/pullup|pull-up|chinup|chin-up|dip\b|dips\b|pushup|push-up|muscle-up|muscleup|calisthenic|pistol squat|handstand/i.test(n)) {
+      return 'bodyweight';
+    }
+
+    // 3. Time / Duration holds
+    if (/plank|dead hang|hang\b|wall sit|hollow hold|hollow rock|l-sit|lsit|hold\b/i.test(n)) {
+      return 'time';
+    }
+
+    return 'weight';
+  }
+
+  function getExerciseMode(ex, routine = null) {
+    if (!ex) return 'weight';
+    if (typeof ex === 'object' && ex.mode) return ex.mode;
+    const name = getExerciseName(ex);
+    if (routine && routine.exerciseModes && routine.exerciseModes[name]) {
+      return routine.exerciseModes[name];
+    }
+    const key = exerciseKey(name);
+    if (customExerciseModes && customExerciseModes[key]) {
+      return customExerciseModes[key];
+    }
+    return inferExerciseMode(name);
+  }
+
   // Default seed routines with each exercise mapped to its body part
   const DEFAULT_ROUTINES = [
     {
@@ -127,6 +164,12 @@
         'Incline Dumbbell Press': 'Chest',
         'Overhead Shoulder Press': 'Shoulders',
         'Cable Tricep Pushdown': 'Arms',
+      },
+      exerciseModes: {
+        'Barbell Bench Press': 'weight',
+        'Incline Dumbbell Press': 'weight',
+        'Overhead Shoulder Press': 'weight',
+        'Cable Tricep Pushdown': 'weight',
       },
       defaultSets: 3,
     },
@@ -140,6 +183,12 @@
         'Bent-Over Barbell Row': 'Back',
         'Incline Dumbbell Curl': 'Arms',
       },
+      exerciseModes: {
+        'Conventional Deadlift': 'weight',
+        'Wide-Grip Lat Pulldown': 'weight',
+        'Bent-Over Barbell Row': 'weight',
+        'Incline Dumbbell Curl': 'weight',
+      },
       defaultSets: 3,
     },
     {
@@ -151,6 +200,30 @@
         'Romanian Deadlift': 'Back',
         'Leg Press Machine': 'Legs',
         'Standing Calf Raises': 'Legs',
+      },
+      exerciseModes: {
+        'Barbell Back Squat': 'weight',
+        'Romanian Deadlift': 'weight',
+        'Leg Press Machine': 'weight',
+        'Standing Calf Raises': 'weight',
+      },
+      defaultSets: 3,
+    },
+    {
+      id: 'default-calisthenics',
+      name: 'Calisthenics & Explosives',
+      exercises: ['Weighted Pull-Up', 'Weighted Dips', 'Explosive Box Jumps', 'Broad Jumps'],
+      exerciseBodyParts: {
+        'Weighted Pull-Up': 'Back',
+        'Weighted Dips': 'Chest',
+        'Explosive Box Jumps': 'Legs',
+        'Broad Jumps': 'Legs',
+      },
+      exerciseModes: {
+        'Weighted Pull-Up': 'bodyweight',
+        'Weighted Dips': 'bodyweight',
+        'Explosive Box Jumps': 'distance',
+        'Broad Jumps': 'distance',
       },
       defaultSets: 3,
     },
@@ -164,6 +237,12 @@
         'Face Pulls': 'Shoulders',
         'Dumbbell Shrugs': 'Back',
       },
+      exerciseModes: {
+        'Overhead Barbell Press': 'weight',
+        'Dumbbell Lateral Raise': 'weight',
+        'Face Pulls': 'weight',
+        'Dumbbell Shrugs': 'weight',
+      },
       defaultSets: 3,
     },
     {
@@ -176,6 +255,12 @@
         'Hammer Curls': 'Arms',
         'Tricep Rope Pushdown': 'Arms',
       },
+      exerciseModes: {
+        'Barbell Bicep Curl': 'weight',
+        'Skull Crushers': 'weight',
+        'Hammer Curls': 'weight',
+        'Tricep Rope Pushdown': 'weight',
+      },
       defaultSets: 3,
     },
     {
@@ -187,6 +272,12 @@
         'Cable Woodchoppers': 'Core',
         'Plank Hold': 'Core',
         'Ab Wheel Rollout': 'Core',
+      },
+      exerciseModes: {
+        'Hanging Leg Raise': 'bodyweight',
+        'Cable Woodchoppers': 'weight',
+        'Plank Hold': 'time',
+        'Ab Wheel Rollout': 'bodyweight',
       },
       defaultSets: 3,
     },
@@ -295,6 +386,8 @@
 
   // ── State Management ──
   let customExerciseBodyParts = loadJSON('plates_exercise_body_parts', {});
+  let customExerciseModes     = loadJSON('plates_exercise_modes', {});
+  let distanceUnit            = localStorage.getItem('plates_distance_unit') || 'in';
 
   runDataMigrations();
 
@@ -352,6 +445,9 @@
   let legacyUnit = localStorage.getItem('plates_legacy_unit');
   if (legacyUnit !== 'kg' && legacyUnit !== 'lb') legacyUnit = null;
   let weightUnit = localStorage.getItem('plates_unit');
+  try {
+    if (weightUnit && weightUnit.startsWith('"')) weightUnit = JSON.parse(weightUnit);
+  } catch {}
   if (weightUnit === 'lbs') {
     weightUnit = 'lb';
     localStorage.setItem('plates_unit', 'lb');
@@ -448,9 +544,14 @@
   const btnRestSkip        = $('#btn-rest-skip');
 
   // Set Logger Form
+  const loggerModeSelector     = $('#logger-mode-selector');
+  const weightUnitToggle       = $('#weight-unit-toggle');
+  const distanceUnitToggle     = $('#distance-unit-toggle');
+  const cardRepsInput          = $('#card-reps-input');
   const setWeightInput     = $('#set-weight-input');
   const setWeightLabel     = $('#set-weight-label');
   const setRepsInput       = $('#set-reps-input');
+  const setRepsLabel       = $('#set-reps-label');
   const btnWeightMinus     = $('#btn-weight-minus');
   const btnWeightPlus      = $('#btn-weight-plus');
   const btnWeightPlus10    = $('#btn-weight-plus10');
@@ -468,6 +569,7 @@
   const modalAddExerciseActive      = $('#modal-add-exercise-active');
   const activeNewExerciseName       = $('#active-new-exercise-name');
   const activeNewExerciseBodypart   = $('#active-new-exercise-bodypart');
+  const activeNewExerciseMode       = $('#active-new-exercise-mode');
   const activeNewExerciseSets       = $('#active-new-exercise-sets');
   const activeNewExercisePosition   = $('#active-new-exercise-position');
   const btnConfirmAddExerciseActive = $('#btn-confirm-add-exercise-active');
@@ -594,6 +696,34 @@
   function fmtWeight(set) {
     const places = unitOf(set) === weightUnit ? 100 : 10;
     return String(Math.round(shownWeight(set) * places) / places);
+  }
+
+  // Unified set detail formatter across Weight, Bodyweight, Explosives/Distance, and Time
+  function fmtSetDetail(s, currentWeightUnit = weightUnit) {
+    if (!s) return '';
+    const mode = s.mode || (s.isBW ? 'bodyweight' : (s.distance !== undefined ? 'distance' : (s.seconds !== undefined ? 'time' : 'weight')));
+
+    if (mode === 'bodyweight' || s.isBW) {
+      const added = Number(s.weight) || 0;
+      const u = currentWeightUnit || weightUnit;
+      if (added > 0) {
+        return `BW + ${fmtWeight(s)} ${u} × ${esc(s.reps)}`;
+      }
+      return `BW × ${esc(s.reps)}`;
+    }
+
+    if (mode === 'distance' || s.distance !== undefined) {
+      const dist = s.distance !== undefined ? s.distance : (s.weight || 0);
+      const dUnit = s.distanceUnit || distanceUnit || 'in';
+      return `${esc(dist)} ${esc(dUnit)} × ${esc(s.reps)}`;
+    }
+
+    if (mode === 'time' || s.seconds !== undefined) {
+      const sec = s.seconds !== undefined ? s.seconds : (s.weight || 0);
+      return `${sec}s hold`;
+    }
+
+    return `${esc(fmtWeight(s))} ${currentWeightUnit} × ${esc(s.reps)}`;
   }
 
   // Total of weight × reps for a logged workout, in the unit being shown
@@ -1041,49 +1171,70 @@
       routine.exercises.forEach(ex => {
         const exName = getExerciseName(ex);
         const exPart = getExerciseBodyPart(ex, routine);
-        addExerciseInputRow(exName, exPart);
+        const exMode = getExerciseMode(ex, routine);
+        addExerciseInputRow(exName, exPart, exMode);
       });
     } else {
       const defaultPart = selectedBodyPartFilter !== 'all' ? selectedBodyPartFilter : 'Chest';
-      addExerciseInputRow('', defaultPart);
-      addExerciseInputRow('', defaultPart);
+      addExerciseInputRow('', defaultPart, 'weight');
+      addExerciseInputRow('', defaultPart, 'weight');
     }
 
     modalRoutine.hidden = false;
     routineNameInput.focus();
   }
 
-  function addExerciseInputRow(value = '', bodyPart = null) {
+  function addExerciseInputRow(value = '', bodyPart = null, mode = null) {
     const row = document.createElement('div');
     row.className = 'exercise-row';
     const initialPart = bodyPart || inferExerciseBodyPart(value);
+    const initialMode = mode || inferExerciseMode(value);
 
-    const optionsHtml = BODY_PARTS.map(bp =>
+    const bpOptionsHtml = BODY_PARTS.map(bp =>
       `<option value="${esc(bp)}" ${bp.toLowerCase() === initialPart.toLowerCase() ? 'selected' : ''}>${esc(bp)}</option>`
     ).join('');
 
+    const modeOptionsHtml = `
+      <option value="weight" ${initialMode === 'weight' ? 'selected' : ''}>Weight</option>
+      <option value="bodyweight" ${initialMode === 'bodyweight' ? 'selected' : ''}>BW</option>
+      <option value="distance" ${initialMode === 'distance' ? 'selected' : ''}>Explosive</option>
+      <option value="time" ${initialMode === 'time' ? 'selected' : ''}>Time</option>
+    `;
+
     row.innerHTML = `
-      <input type="text" class="exercise-name-input" placeholder="Exercise name (e.g. Incline Bench Press)" maxlength="50" />
+      <input type="text" class="exercise-name-input" placeholder="Exercise name (e.g. Pull-ups, Box Jumps)" maxlength="50" />
       <select class="exercise-bodypart-select" title="Target body part">
-        ${optionsHtml}
+        ${bpOptionsHtml}
+      </select>
+      <select class="exercise-mode-select" title="Tracking mode">
+        ${modeOptionsHtml}
       </select>
       <button type="button" class="btn-icon danger" title="Remove">✕</button>
     `;
 
     const input = row.querySelector('.exercise-name-input');
-    const select = row.querySelector('.exercise-bodypart-select');
+    const bpSelect = row.querySelector('.exercise-bodypart-select');
+    const modeSelect = row.querySelector('.exercise-mode-select');
     // Set value as property to preserve characters like quotes
     input.value = value;
 
-    let manualChoice = Boolean(value && bodyPart);
+    let manualBpChoice = Boolean(value && bodyPart);
+    let manualModeChoice = Boolean(value && mode);
 
-    select.addEventListener('change', () => {
-      manualChoice = true;
+    bpSelect.addEventListener('change', () => {
+      manualBpChoice = true;
+    });
+
+    modeSelect.addEventListener('change', () => {
+      manualModeChoice = true;
     });
 
     input.addEventListener('input', () => {
-      if (!manualChoice) {
-        select.value = inferExerciseBodyPart(input.value);
+      if (!manualBpChoice) {
+        bpSelect.value = inferExerciseBodyPart(input.value);
+      }
+      if (!manualModeChoice) {
+        modeSelect.value = inferExerciseMode(input.value);
       }
     });
 
@@ -1104,22 +1255,28 @@
     const rows = [...exerciseList.querySelectorAll('.exercise-row')];
     const exercises = [];
     const exerciseBodyParts = {};
+    const exerciseModes = {};
 
     rows.forEach(r => {
       const inEl = r.querySelector('.exercise-name-input') || r.querySelector('input');
-      const selEl = r.querySelector('.exercise-bodypart-select') || r.querySelector('select');
+      const bpEl = r.querySelector('.exercise-bodypart-select');
+      const modeEl = r.querySelector('.exercise-mode-select');
       const exName = inEl ? inEl.value.trim() : '';
       if (exName) {
         exercises.push(exName);
-        const part = selEl ? selEl.value : inferExerciseBodyPart(exName);
+        const part = bpEl ? bpEl.value : inferExerciseBodyPart(exName);
+        const mode = modeEl ? modeEl.value : inferExerciseMode(exName);
         exerciseBodyParts[exName] = part;
+        exerciseModes[exName] = mode;
         customExerciseBodyParts[exerciseKey(exName)] = part;
+        customExerciseModes[exerciseKey(exName)] = mode;
       }
     });
 
     if (exercises.length === 0) { toast('Add at least one exercise'); return; }
 
     saveJSON('plates_exercise_body_parts', customExerciseBodyParts);
+    saveJSON('plates_exercise_modes', customExerciseModes);
 
     const primaryBodyPart = inferBodyPart(name, exercises);
 
@@ -1130,6 +1287,7 @@
         r.bodyPart = primaryBodyPart;
         r.exercises = exercises;
         r.exerciseBodyParts = exerciseBodyParts;
+        r.exerciseModes = exerciseModes;
       }
     } else {
       routines.push({
@@ -1138,6 +1296,7 @@
         bodyPart: primaryBodyPart,
         exercises,
         exerciseBodyParts,
+        exerciseModes,
         defaultSets: 3,
       });
     }
@@ -1184,9 +1343,11 @@
       exercises: routine.exercises.map(ex => {
         const exName = getExerciseName(ex);
         const exPart = getExerciseBodyPart(ex, routine);
+        const exMode = getExerciseMode(ex, routine);
         return {
           name: exName,
           bodyPart: exPart,
+          mode: exMode,
           targetSets: routine.defaultSets || 3,
           sets: [],
         };
@@ -1347,6 +1508,10 @@
       activeExerciseBodypart.textContent = currentEx.bodyPart || getExerciseBodyPart(currentEx.name, activeSession);
     }
 
+    const currentMode = currentEx.mode || getExerciseMode(currentEx.name, activeSession);
+    currentEx.mode = currentMode;
+    applyModeUI(currentMode);
+
     const currentSetNum = currentEx.sets.length + 1;
     const isOverTarget = currentSetNum > currentEx.targetSets;
     activeSetCounter.textContent = isOverTarget
@@ -1373,7 +1538,7 @@
       exerciseSetsList.innerHTML = currentEx.sets.map((s, idx) => `
         <div class="set-record-row">
           <span class="set-record-num">Set ${idx + 1}</span>
-          <span class="set-record-detail"><strong>${esc(fmtWeight(s))} ${weightUnit}</strong> × ${esc(s.reps)} reps</span>
+          <span class="set-record-detail"><strong>${fmtSetDetail(s)}</strong></span>
           <div style="display:flex; align-items:center; gap:8px">
             <span class="set-record-check">✓</span>
             <button class="set-record-del" data-set-idx="${idx}" title="Delete set">✕</button>
@@ -1424,15 +1589,136 @@
     }
   }
 
+  // ── Tracking Mode UI & Steppers ──
+  function getCurrentExerciseMode() {
+    if (!activeSession) return 'weight';
+    const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
+    if (!currentEx) return 'weight';
+    return currentEx.mode || getExerciseMode(currentEx.name, activeSession);
+  }
+
+  function getModeSteps(mode) {
+    if (mode === 'distance') {
+      const distSteps = {
+        in: { small: 2, big: 6 },
+        cm: { small: 5, big: 10 },
+        m:  { small: 0.2, big: 0.5 },
+        ft: { small: 0.5, big: 1 },
+      };
+      return distSteps[distanceUnit] || distSteps.in;
+    }
+    if (mode === 'time') {
+      return { small: 5, big: 15 };
+    }
+    return UNIT_STEPS[weightUnit];
+  }
+
+  function applyModeUI(mode) {
+    if (!activeSession) return;
+    const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
+    if (currentEx) currentEx.mode = mode;
+
+    if (loggerModeSelector) {
+      loggerModeSelector.querySelectorAll('.mode-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.mode === mode);
+      });
+    }
+
+    const steps = getModeSteps(mode);
+
+    if (mode === 'weight') {
+      if (weightUnitToggle) weightUnitToggle.hidden = false;
+      if (distanceUnitToggle) distanceUnitToggle.hidden = true;
+      if (setWeightLabel) setWeightLabel.textContent = `Weight (${weightUnit})`;
+      btnWeightMinus.textContent = `-${steps.small}`;
+      btnWeightPlus.textContent = `+${steps.small}`;
+      btnWeightPlus10.textContent = `+${steps.big}`;
+      if (setRepsLabel) setRepsLabel.textContent = 'Reps';
+      if (cardRepsInput) cardRepsInput.style.display = 'block';
+      setWeightInput.placeholder = '0';
+    } else if (mode === 'bodyweight') {
+      if (weightUnitToggle) weightUnitToggle.hidden = false;
+      if (distanceUnitToggle) distanceUnitToggle.hidden = true;
+      if (setWeightLabel) setWeightLabel.textContent = `Extra Weight (${weightUnit}) — 0 for BW`;
+      btnWeightMinus.textContent = `-${steps.small}`;
+      btnWeightPlus.textContent = `+${steps.small}`;
+      btnWeightPlus10.textContent = `+${steps.big}`;
+      if (setRepsLabel) setRepsLabel.textContent = 'Reps';
+      if (cardRepsInput) cardRepsInput.style.display = 'block';
+      setWeightInput.placeholder = '0 (BW)';
+    } else if (mode === 'distance') {
+      if (weightUnitToggle) weightUnitToggle.hidden = true;
+      if (distanceUnitToggle) {
+        distanceUnitToggle.hidden = false;
+        distanceUnitToggle.querySelectorAll('.distance-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.dunit === distanceUnit);
+        });
+      }
+      if (setWeightLabel) setWeightLabel.textContent = `Height / Distance (${distanceUnit})`;
+      btnWeightMinus.textContent = `-${steps.small}`;
+      btnWeightPlus.textContent = `+${steps.small}`;
+      btnWeightPlus10.textContent = `+${steps.big}`;
+      if (setRepsLabel) setRepsLabel.textContent = 'Reps / Jumps';
+      if (cardRepsInput) cardRepsInput.style.display = 'block';
+      setWeightInput.placeholder = distanceUnit === 'in' ? '30' : (distanceUnit === 'cm' ? '75' : '2.0');
+    } else if (mode === 'time') {
+      if (weightUnitToggle) weightUnitToggle.hidden = true;
+      if (distanceUnitToggle) distanceUnitToggle.hidden = true;
+      if (setWeightLabel) setWeightLabel.textContent = 'Duration (seconds)';
+      btnWeightMinus.textContent = `-${steps.small}s`;
+      btnWeightPlus.textContent = `+${steps.small}s`;
+      btnWeightPlus10.textContent = `+${steps.big}s`;
+      if (setRepsLabel) setRepsLabel.textContent = 'Hold';
+      if (cardRepsInput) cardRepsInput.style.display = 'none';
+      setWeightInput.placeholder = '45';
+    }
+  }
+
+  if (loggerModeSelector) {
+    loggerModeSelector.querySelectorAll('.mode-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const mode = pill.dataset.mode;
+        if (!activeSession) return;
+        const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
+        if (!currentEx) return;
+        currentEx.mode = mode;
+        customExerciseModes[exerciseKey(currentEx.name)] = mode;
+        saveJSON('plates_exercise_modes', customExerciseModes);
+        saveJSON('plates_active_session', activeSession);
+        applyModeUI(mode);
+        const labels = { weight: 'Weight & Reps', bodyweight: 'Weighted Calisthenics (BW)', distance: 'Distance / Height', time: 'Time Hold' };
+        toast(`Tracking as ${labels[mode] || mode}`);
+      });
+    });
+  }
+
+  if (distanceUnitToggle) {
+    distanceUnitToggle.querySelectorAll('.distance-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        distanceUnit = btn.dataset.dunit;
+        localStorage.setItem('plates_distance_unit', distanceUnit);
+        applyModeUI('distance');
+      });
+    });
+  }
+
   // ── Set Logger Stepper Adjustments ──
-  // Weight steps follow the unit: 2.5 and 5 for kg, 5 and 10 for lb
   function stepWeight(delta) {
     const val = Math.max(0, (parseFloat(setWeightInput.value) || 0) + delta);
     setWeightInput.value = String(Math.round(val * 100) / 100);
   }
-  btnWeightMinus.addEventListener('click', () => stepWeight(-UNIT_STEPS[weightUnit].small));
-  btnWeightPlus.addEventListener('click', () => stepWeight(UNIT_STEPS[weightUnit].small));
-  btnWeightPlus10.addEventListener('click', () => stepWeight(UNIT_STEPS[weightUnit].big));
+  btnWeightMinus.addEventListener('click', () => {
+    const steps = getModeSteps(getCurrentExerciseMode());
+    stepWeight(-steps.small);
+  });
+  btnWeightPlus.addEventListener('click', () => {
+    const steps = getModeSteps(getCurrentExerciseMode());
+    stepWeight(steps.small);
+  });
+  btnWeightPlus10.addEventListener('click', () => {
+    const steps = getModeSteps(getCurrentExerciseMode());
+    stepWeight(steps.big);
+  });
 
   // ── Last time & pre-fill ──
   function renderLastTime(last, setIndex) {
@@ -1441,41 +1727,69 @@
       lastTimeEl.textContent = '';
       return;
     }
-    // Highlight the set you're about to do, as you did it last time
     const sets = last.sets.map((s, i) => {
-      const text = `${esc(fmtWeight(s))} ${weightUnit} × ${esc(s.reps)}`;
-      // Each set stays on one line when the list wraps
+      const text = fmtSetDetail(s);
       return i === setIndex ? `<strong class="last-time-set">${text}</strong>` : `<span class="last-time-set">${text}</span>`;
     });
     lastTimeEl.innerHTML = `Last time (${esc(daysAgoLabel(last.date))}): ${sets.join(', ')}`;
     lastTimeEl.hidden = false;
   }
 
-  // Fill the boxes when you reach a new set: from the set you just did, or
-  // else from the first set last time. Only then, so a re-render never
-  // overwrites what you've typed.
   let prefilledFor = null;
   function prefillInputs(ex, last) {
     const key = `${activeSession.startTime}|${activeSession.currentExerciseIndex}|${ex.sets.length}`;
     if (key === prefilledFor) return;
     prefilledFor = key;
+    const mode = ex.mode || getExerciseMode(ex.name, activeSession);
     const source = ex.sets[ex.sets.length - 1] || (last && last.sets[0]);
-    setWeightInput.value = source ? fmtWeight(source) : '';
-    setRepsInput.value = source ? source.reps : 10;
+
+    if (source) {
+      if (mode === 'distance') {
+        setWeightInput.value = source.distance !== undefined ? source.distance : (source.weight || '');
+        setRepsInput.value = source.reps || 5;
+      } else if (mode === 'time') {
+        setWeightInput.value = source.seconds !== undefined ? source.seconds : (source.weight || 45);
+        setRepsInput.value = 1;
+      } else if (mode === 'bodyweight') {
+        setWeightInput.value = source.weight !== undefined ? (Number(source.weight) > 0 ? fmtWeight(source) : '0') : '0';
+        setRepsInput.value = source.reps || 10;
+      } else {
+        setWeightInput.value = fmtWeight(source);
+        setRepsInput.value = source.reps || 10;
+      }
+    } else {
+      if (mode === 'distance') {
+        setWeightInput.value = distanceUnit === 'in' ? '30' : (distanceUnit === 'cm' ? '75' : '2.0');
+        setRepsInput.value = 5;
+      } else if (mode === 'time') {
+        setWeightInput.value = '45';
+        setRepsInput.value = 1;
+      } else if (mode === 'bodyweight') {
+        setWeightInput.value = '0';
+        setRepsInput.value = 10;
+      } else {
+        setWeightInput.value = '';
+        setRepsInput.value = 10;
+      }
+    }
   }
 
   // ── kg / lb ──
   function applyUnitUI() {
     $$('.unit-btn').forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.unit === weightUnit)));
-    if (setWeightLabel) setWeightLabel.textContent = `Weight (${weightUnit})`;
-    const steps = UNIT_STEPS[weightUnit];
+    const mode = getCurrentExerciseMode();
+    if (mode === 'weight' && setWeightLabel) {
+      setWeightLabel.textContent = `Weight (${weightUnit})`;
+    } else if (mode === 'bodyweight' && setWeightLabel) {
+      setWeightLabel.textContent = `Extra Weight (${weightUnit}) — 0 for BW`;
+    }
+    const steps = getModeSteps(mode);
     btnWeightMinus.textContent = `-${steps.small}`;
     btnWeightPlus.textContent = `+${steps.small}`;
     btnWeightPlus10.textContent = `+${steps.big}`;
   }
 
   function setWeightUnit(unit, convertTyped = true) {
-    // Keep the same load in the weight box, in the new unit
     if (convertTyped && unit !== weightUnit) {
       const typed = parseFloat(setWeightInput.value);
       if (!isNaN(typed)) setWeightInput.value = String(Math.round(convertWeight(typed, weightUnit, unit) * 10) / 10);
@@ -1490,7 +1804,6 @@
 
   $$('.unit-btn').forEach(btn => btn.addEventListener('click', () => setWeightUnit(btn.dataset.unit)));
 
-  // People with sets from before units existed get asked, once, what they used
   function renderUnitQuestion() {
     if (unitQuestion) unitQuestion.hidden = !(legacyUnit === null && hasUnitlessSets());
   }
@@ -1498,7 +1811,7 @@
   function answerLegacyUnit(unit) {
     legacyUnit = unit;
     localStorage.setItem('plates_legacy_unit', unit);
-    prefilledFor = null; // refill the boxes with the old sets read the right way
+    prefilledFor = null;
     setWeightUnit(unit, false);
     toast(`Got it: your past weights are in ${unit}`);
   }
@@ -1528,50 +1841,74 @@
     const currentEx = activeSession.exercises[activeSession.currentExerciseIndex];
     if (!currentEx) return;
 
-    const weight = parseFloat(setWeightInput.value) || 0;
-    const reps   = parseInt(setRepsInput.value, 10) || 0;
+    const mode = currentEx.mode || getExerciseMode(currentEx.name, activeSession);
+    const weightOrVal = parseFloat(setWeightInput.value) || 0;
+    const reps   = parseInt(setRepsInput.value, 10) || (mode === 'time' ? 1 : 0);
 
-    if (reps <= 0) {
+    if (mode !== 'time' && reps <= 0) {
       toast('Please enter at least 1 rep');
       setRepsInput.focus();
       return;
     }
-    // Catch typos before they reach History and the charts
-    if (weight < 0) {
-      toast('Weight can\'t be below zero');
-      setWeightInput.focus();
-      return;
-    }
-    if (reps > MAX_REPS) {
-      toast(`Reps go up to ${MAX_REPS}`);
-      setRepsInput.focus();
-      return;
-    }
-    if (convertWeight(weight, weightUnit, 'kg') > MAX_WEIGHT_KG &&
-        !confirm(`That's ${weight} ${weightUnit}. Log it anyway?`)) {
+    if (weightOrVal < 0) {
+      if (mode === 'distance') {
+        toast("Distance can't be below zero");
+      } else if (mode === 'time') {
+        toast("Time can't be below zero");
+      } else {
+        toast("Weight can't be below zero");
+      }
       setWeightInput.focus();
       return;
     }
 
-    // Log the set, with the unit it was entered in
-    currentEx.sets.push({
-      weight,
-      reps,
-      unit: weightUnit,
+    let setRecord = {
       timestamp: Date.now(),
-    });
+      mode,
+    };
 
-    // Tactile & Audio feedback
+    if (mode === 'bodyweight') {
+      setRecord.weight = weightOrVal;
+      setRecord.reps = reps;
+      setRecord.unit = weightUnit;
+      setRecord.isBW = true;
+    } else if (mode === 'distance') {
+      setRecord.distance = weightOrVal;
+      setRecord.distanceUnit = distanceUnit;
+      setRecord.reps = reps;
+      setRecord.weight = 0;
+      setRecord.unit = weightUnit;
+    } else if (mode === 'time') {
+      setRecord.seconds = weightOrVal || 30;
+      setRecord.reps = 1;
+      setRecord.weight = 0;
+      setRecord.unit = weightUnit;
+    } else {
+      if (reps > MAX_REPS) {
+        toast(`Reps go up to ${MAX_REPS}`);
+        setRepsInput.focus();
+        return;
+      }
+      if (convertWeight(weightOrVal, weightUnit, 'kg') > MAX_WEIGHT_KG &&
+          !confirm(`That's ${weightOrVal} ${weightUnit}. Log it anyway?`)) {
+        setWeightInput.focus();
+        return;
+      }
+      setRecord.weight = weightOrVal;
+      setRecord.reps = reps;
+      setRecord.unit = weightUnit;
+    }
+
+    currentEx.sets.push(setRecord);
+
     playSetChime();
     if (navigator.vibrate) navigator.vibrate([80]);
 
-    toast(`Set ${currentEx.sets.length} logged: ${weight} ${weightUnit} × ${reps} reps!`);
+    toast(`Set ${currentEx.sets.length} logged: ${fmtSetDetail(setRecord)}!`);
 
-    // Determine recommended rest time for current goal
     const goalCfg = REST_CONFIG[currentGoal] || REST_CONFIG.strength;
     const restSeconds = goalCfg.rest;
 
-    // Start contextual rest timer between sets!
     startRestTimer(restSeconds);
 
     saveJSON('plates_active_session', activeSession);
@@ -1696,12 +2033,15 @@
 
   // ── Dynamic Mid-Workout Exercise Addition & Variation ──
   let activeNewExerciseBodypartManual = false;
+  let activeNewExerciseModeManual = false;
   function openAddExerciseActiveModal() {
     if (!activeSession) return;
     activeNewExerciseBodypartManual = false;
+    activeNewExerciseModeManual = false;
     if (activeNewExerciseName) {
       activeNewExerciseName.value = '';
       if (activeNewExerciseBodypart) activeNewExerciseBodypart.value = 'Chest';
+      if (activeNewExerciseMode) activeNewExerciseMode.value = 'weight';
       activeNewExerciseSets.value = '3';
       activeNewExercisePosition.value = 'next';
     }
@@ -1717,10 +2057,19 @@
     });
   }
 
+  if (activeNewExerciseMode) {
+    activeNewExerciseMode.addEventListener('change', () => {
+      activeNewExerciseModeManual = true;
+    });
+  }
+
   if (activeNewExerciseName) {
     activeNewExerciseName.addEventListener('input', () => {
       if (!activeNewExerciseBodypartManual && activeNewExerciseBodypart) {
         activeNewExerciseBodypart.value = inferExerciseBodyPart(activeNewExerciseName.value);
+      }
+      if (!activeNewExerciseModeManual && activeNewExerciseMode) {
+        activeNewExerciseMode.value = inferExerciseMode(activeNewExerciseName.value);
       }
     });
   }
@@ -1735,6 +2084,7 @@
     }
 
     const bodyPart = activeNewExerciseBodypart ? activeNewExerciseBodypart.value : inferExerciseBodyPart(name);
+    const mode = activeNewExerciseMode ? activeNewExerciseMode.value : inferExerciseMode(name);
     const setsCount = parseInt(activeNewExerciseSets ? activeNewExerciseSets.value : '3', 10) || 3;
     const targetSets = Math.max(1, Math.min(20, setsCount));
     const pos = activeNewExercisePosition ? activeNewExercisePosition.value : 'next';
@@ -1742,9 +2092,13 @@
     customExerciseBodyParts[exerciseKey(name)] = bodyPart;
     saveJSON('plates_exercise_body_parts', customExerciseBodyParts);
 
+    customExerciseModes[exerciseKey(name)] = mode;
+    saveJSON('plates_exercise_modes', customExerciseModes);
+
     const newExercise = {
       name,
       bodyPart,
+      mode,
       targetSets,
       sets: [],
     };
@@ -1840,11 +2194,14 @@
       if (ex.sets.length > 0) {
         totalSets += ex.sets.length;
         ex.sets.forEach(s => {
-          totalVolume += shownWeight(s) * (Number(s.reps) || 0);
+          if (!s.mode || s.mode === 'weight' || s.mode === 'bodyweight') {
+            totalVolume += shownWeight(s) * (Number(s.reps) || 0);
+          }
         });
         loggedExercises.push({
           name: ex.name,
           bodyPart: ex.bodyPart || getExerciseBodyPart(ex.name, activeSession),
+          mode: ex.mode || getExerciseMode(ex.name, activeSession),
           sets: ex.sets,
         });
       }
@@ -1900,7 +2257,7 @@
           <strong>${esc(ex.name)}</strong>
           <span class="routine-card-ex-tag">${esc(part)}</span>
         </div>
-        <span>${ex.sets.length} sets (${ex.sets.map(s => `${esc(fmtWeight(s))}×${esc(s.reps)}`).join(', ')} ${weightUnit})</span>
+        <span>${ex.sets.length} sets (${ex.sets.map(s => fmtSetDetail(s)).join(', ')})</span>
       </div>
     `;
     }).join('');
@@ -1966,7 +2323,7 @@
                   <span class="history-exercise-name">${esc(ex.name)}</span>
                   <span class="routine-card-ex-tag">${esc(part)}</span>
                 </div>
-                <span>${ex.sets.map(s => `${esc(fmtWeight(s))} ${weightUnit} × ${esc(s.reps)}`).join(' · ')}</span>
+                <span>${ex.sets.map(s => fmtSetDetail(s, weightUnit)).join(' · ')}</span>
               </div>`;
             }).join('')}
           </div>

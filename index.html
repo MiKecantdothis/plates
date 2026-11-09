@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=20" />
+  <link rel="stylesheet" href="index.css?v=21" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -474,14 +474,31 @@
           <div class="set-logger-box" id="set-logger-box">
             <div class="set-logger-head">
               <div class="set-logger-label">LOG CURRENT SET:</div>
-              <div class="unit-toggle" role="group" aria-label="Weight unit">
-                <button type="button" class="unit-btn" data-unit="kg" aria-pressed="false">kg</button>
-                <button type="button" class="unit-btn" data-unit="lb" aria-pressed="false">lb</button>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="unit-toggle" id="weight-unit-toggle" role="group" aria-label="Weight unit">
+                  <button type="button" class="unit-btn" data-unit="kg" aria-pressed="false">kg</button>
+                  <button type="button" class="unit-btn" data-unit="lb" aria-pressed="false">lb</button>
+                </div>
+                <div class="distance-unit-toggle" id="distance-unit-toggle" role="group" aria-label="Distance unit" hidden>
+                  <button type="button" class="distance-btn active" data-dunit="in">in</button>
+                  <button type="button" class="distance-btn" data-dunit="cm">cm</button>
+                  <button type="button" class="distance-btn" data-dunit="m">m</button>
+                  <button type="button" class="distance-btn" data-dunit="ft">ft</button>
+                </div>
               </div>
             </div>
+
+            <!-- Tracking Mode Selector Pills -->
+            <div class="logger-mode-selector" id="logger-mode-selector" role="group" aria-label="Exercise tracking mode">
+              <button type="button" class="mode-pill active" data-mode="weight">Weight</button>
+              <button type="button" class="mode-pill" data-mode="bodyweight">Bodyweight (BW)</button>
+              <button type="button" class="mode-pill" data-mode="distance">Distance / Height</button>
+              <button type="button" class="mode-pill" data-mode="time">Time Hold</button>
+            </div>
+
             <div class="set-inputs-row">
-              <!-- Weight input with steppers -->
-              <div class="input-stepper-card">
+              <!-- Weight / Distance / Time input with steppers -->
+              <div class="input-stepper-card" id="card-weight-input">
                 <label for="set-weight-input" id="set-weight-label">Weight (lb)</label>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn" id="btn-weight-minus">-5</button>
@@ -492,8 +509,8 @@
               </div>
 
               <!-- Reps input with steppers -->
-              <div class="input-stepper-card">
-                <label for="set-reps-input">Reps</label>
+              <div class="input-stepper-card" id="card-reps-input">
+                <label for="set-reps-input" id="set-reps-label">Reps</label>
                 <div class="stepper-controls">
                   <button type="button" class="stepper-btn" id="btn-reps-minus">-1</button>
                   <input type="number" id="set-reps-input" placeholder="0" min="1" max="100" inputmode="numeric" />
@@ -622,7 +639,16 @@
       <p class="subtitle" style="margin-bottom: 14px">Dynamically add an exercise or variation to your active workout session.</p>
       <div class="form-group">
         <label for="active-new-exercise-name">Exercise Name</label>
-        <input type="text" id="active-new-exercise-name" placeholder="e.g. Deadlift, Incline Dumbbell Flyes" maxlength="50" autocomplete="off" />
+        <input type="text" id="active-new-exercise-name" placeholder="e.g. Weighted Pull-ups, Box Jumps" maxlength="50" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label for="active-new-exercise-mode">Tracking Mode</label>
+        <select id="active-new-exercise-mode">
+          <option value="weight">Standard (Weight & Reps)</option>
+          <option value="bodyweight">Weighted Calisthenics (BW + Weight)</option>
+          <option value="distance">Explosive (Distance / Height)</option>
+          <option value="time">Time / Hold (Seconds)</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="active-new-exercise-bodypart">Target Body Part</label>
@@ -702,7 +728,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

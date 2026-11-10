@@ -998,11 +998,11 @@
 
     // Routine type badge
     const typeLabels = {
-      strength: '🏋️ Strength',
-      bodyweight: '🤸 Calisthenics',
-      explosive: '⚡ Explosive',
-      cardio: '🏃 Cardio',
-      mixed: '🔀 Mixed',
+      strength: 'Strength',
+      bodyweight: 'Calisthenics',
+      explosive: 'Explosive',
+      cardio: 'Cardio',
+      mixed: 'Mixed',
     };
     const rtype = inferRoutineType(r);
     const typeBadge = `<span class="routine-type-badge routine-type-${esc(rtype)}">${esc(typeLabels[rtype] || rtype)}</span>`;
@@ -1079,11 +1079,11 @@
 
     // Routine type labels for group headers
     const ROUTINE_TYPE_LABELS = {
-      strength: '🏋️ Strength',
-      bodyweight: '🤸 Calisthenics',
-      explosive: '⚡ Explosive',
-      cardio: '🏃 Cardio',
-      mixed: '🔀 Mixed',
+      strength: 'Strength',
+      bodyweight: 'Calisthenics',
+      explosive: 'Explosive',
+      cardio: 'Cardio',
+      mixed: 'Mixed',
     };
 
     if (selectedRoutineTypeFilter === 'all') {
@@ -2466,7 +2466,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast('Backup exported successfully! 📦');
+      toast('Backup exported successfully');
     } catch (err) {
       console.error('Export failed:', err);
       toast('Could not export backup file');
@@ -2548,7 +2548,7 @@
         renderShopping();
         applyUnitUI();
 
-        toast(`Imported ${addedCount} workouts and ${importedRoutines.length} routines! 🎉`);
+        toast(`Imported ${addedCount} workouts and ${importedRoutines.length} routines`);
       } catch (err) {
         console.error('Import failed:', err);
         toast('Invalid backup file. Could not parse JSON.');
@@ -3192,7 +3192,7 @@
                 <div class="recent-session-date">${dateStr}</div>
               </div>
               <div class="recent-session-meta">
-                ${durStr ? `⏱️ ${durStr}` : ''} ${volStr ? ` · 🏋️ ${esc(volStr)}` : ''}
+                ${durStr ? esc(durStr) : ''}${durStr && volStr ? ' · ' : ''}${volStr ? esc(volStr) : ''}
               </div>
               <div class="recent-session-exercises">
                 ${esc(exercisesStr)}${h.exercises && h.exercises.length > 3 ? ` +${h.exercises.length - 3} more` : ''}

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=22" />
+  <link rel="stylesheet" href="index.css?v=23" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -313,8 +313,8 @@
             <div class="dashboard-card-subtitle">Protect your workout history and routines across updates</div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" id="btn-export-backup" class="btn-secondary btn-small" title="Export all your workouts and routines to a JSON file">Export Backup 📦</button>
-            <button type="button" id="btn-import-backup" class="btn-secondary btn-small" title="Import workouts and routines from a JSON backup">Import Backup 📥</button>
+            <button type="button" id="btn-export-backup" class="btn-secondary btn-small" title="Export all your workouts and routines to a JSON file">Export Backup</button>
+            <button type="button" id="btn-import-backup" class="btn-secondary btn-small" title="Import workouts and routines from a JSON backup">Import Backup</button>
           </div>
         </div>
       </div>
@@ -354,11 +354,11 @@
       <div class="bodypart-filters-bar">
         <div class="bodypart-filters" id="routine-type-filters" role="tablist" aria-label="Filter workouts by type">
           <button type="button" class="bodypart-chip active" data-rtype="all">All</button>
-          <button type="button" class="bodypart-chip" data-rtype="strength">🏋️ Strength</button>
-          <button type="button" class="bodypart-chip" data-rtype="bodyweight">🤸 Calisthenics</button>
-          <button type="button" class="bodypart-chip" data-rtype="explosive">⚡ Explosive</button>
-          <button type="button" class="bodypart-chip" data-rtype="cardio">🏃 Cardio</button>
-          <button type="button" class="bodypart-chip" data-rtype="mixed">🔀 Mixed</button>
+          <button type="button" class="bodypart-chip" data-rtype="strength">Strength</button>
+          <button type="button" class="bodypart-chip" data-rtype="bodyweight">Calisthenics</button>
+          <button type="button" class="bodypart-chip" data-rtype="explosive">Explosive</button>
+          <button type="button" class="bodypart-chip" data-rtype="cardio">Cardio</button>
+          <button type="button" class="bodypart-chip" data-rtype="mixed">Mixed</button>
         </div>
       </div>
 
@@ -553,8 +553,8 @@
       <div class="section-header">
         <h1>Workout History</h1>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <button type="button" id="btn-export-history" class="btn-secondary btn-small" title="Export all your workouts and routines to JSON">Export Backup 📦</button>
-          <button type="button" id="btn-import-history" class="btn-secondary btn-small" title="Import workouts from JSON backup">Import Backup 📥</button>
+          <button type="button" id="btn-export-history" class="btn-secondary btn-small" title="Export all your workouts and routines to JSON">Export Backup</button>
+          <button type="button" id="btn-import-history" class="btn-secondary btn-small" title="Import workouts from JSON backup">Import Backup</button>
           <button type="button" id="btn-clear-history" class="btn-danger">Clear All</button>
         </div>
       </div>
@@ -726,7 +726,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=22"></script>
+  <script src="app.js?v=23"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

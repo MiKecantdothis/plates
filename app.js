@@ -619,6 +619,37 @@
   const historyList        = $('#history-list');
   const btnClearHistory    = $('#btn-clear-history');
 
+  // Run Tracker Tab
+  const runActiveIndicator     = $('#run-active-indicator');
+  const runGpsStatus           = $('#run-gps-status');
+  const runGoalBtns            = $$('.run-goal-btn');
+  const runCustomGoalInput     = $('#run-custom-goal-input');
+  const btnSetCustomGoal       = $('#btn-set-custom-goal');
+  const runTargetBadge         = $('#run-target-badge');
+  const runDirectionBadge      = $('#run-direction-badge');
+  const runDistanceVal         = $('#run-distance-val');
+  const runProgressBar         = $('#run-progress-bar');
+  const runProgressPercent     = $('#run-progress-percent');
+  const runRemainingLabel      = $('#run-remaining-label');
+  const runTimerVal            = $('#run-timer-val');
+  const runPaceVal             = $('#run-pace-val');
+  const runAvgPaceVal          = $('#run-avg-pace-val');
+  const runTrailPointsCount    = $('#run-trail-points-count');
+  const runTrailCanvas         = $('#run-trail-canvas');
+  const runCanvasHint          = $('#run-canvas-hint');
+  const runIdleActions         = $('#run-idle-actions');
+  const runActiveActions       = $('#run-active-actions');
+  const btnStartRun            = $('#btn-start-run');
+  const btnPauseRun            = $('#btn-pause-run');
+  const btnFinishRun           = $('#btn-finish-run');
+  const btnDiscardRun          = $('#btn-discard-run');
+  const runScreenFlash         = $('#run-screen-flash');
+  const runFlashTitle          = $('#run-flash-title');
+  const runFlashGoalText       = $('#run-flash-goal-text');
+  const runFlashStatsText      = $('#run-flash-stats-text');
+  const btnSaveRunFlash        = $('#btn-save-run-flash');
+  const btnCloseRunFlash       = $('#btn-close-run-flash');
+
   // Shopping Tab
   const shoppingInput         = $('#shopping-input');
   const shoppingPrice         = $('#shopping-price');
@@ -856,6 +887,27 @@
     } catch {}
   }
 
+  function playGoalReachedChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 triumphant chime
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const delay = i * 0.14;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+        gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + delay + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime + delay + 0.52);
+      });
+    } catch {}
+  }
+
   // ── Tab Navigation ──
   function switchTab(tabName) {
     $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
@@ -865,6 +917,9 @@
     }
     if (tabName === 'dashboard') {
       renderDashboard();
+    }
+    if (tabName === 'run') {
+      renderRunView();
     }
   }
 
@@ -2578,6 +2633,611 @@
   //  SHOPPING LIST
   // ══════════════════════════════════════════
 
+  // ══════════════════════════════════════════
+  //  RUN TRACKER & GOAL-BASED RUNNING (GPS)
+  // ══════════════════════════════════════════
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+              Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+    const brng = Math.atan2(y, x) * 180 / Math.PI;
+    return (brng + 360) % 360;
+  }
+
+  function bearingToCardinal(bearing) {
+    if (bearing === null || bearing === undefined || isNaN(bearing)) return '--';
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const idx = Math.round(bearing / 45) % 8;
+    return `${directions[idx]} ${Math.round(bearing)}°`;
+  }
+
+  function formatRunPace(secondsPerKm) {
+    if (!secondsPerKm || !isFinite(secondsPerKm) || secondsPerKm <= 0 || secondsPerKm > 3600) return "--'--\"";
+    const mins = Math.floor(secondsPerKm / 60);
+    const secs = Math.floor(secondsPerKm % 60);
+    return `${mins}'${String(secs).padStart(2, '0')}"`;
+  }
+
+  function formatRunTime(sec) {
+    const s = Math.max(0, Math.floor(sec || 0));
+    const m = Math.floor(s / 60);
+    const remS = s % 60;
+    if (m >= 60) {
+      const h = Math.floor(m / 60);
+      const remM = m % 60;
+      return `${h}:${String(remM).padStart(2, '0')}:${String(remS).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(remS).padStart(2, '0')}`;
+  }
+
+  let activeRun = loadJSON('plates_active_run', {
+    active: false,
+    paused: false,
+    goal: 5,
+    startTime: null,
+    pauseStartTime: null,
+    totalPausedMs: 0,
+    distanceKm: 0,
+    elapsedSeconds: 0,
+    points: [],
+    goalReachedNotified: false,
+  });
+  let runWatchId = null;
+  let runTickerInterval = null;
+
+  function drawRunTrail() {
+    if (!runTrailCanvas) return;
+    const ctx = runTrailCanvas.getContext('2d');
+    const rect = runTrailCanvas.getBoundingClientRect();
+    const w = rect.width ? Math.round(rect.width) : (runTrailCanvas.width || 400);
+    const h = runTrailCanvas.height || 240;
+
+    if (runTrailCanvas.width !== w) {
+      runTrailCanvas.width = w;
+    }
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Dark sleek background
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle coordinate grid
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.lineWidth = 1;
+    const gridSize = 32;
+    for (let x = 0; x < w; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = 0; y < h; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    const pts = activeRun.points || [];
+    if (runTrailPointsCount) {
+      runTrailPointsCount.textContent = `${pts.length} point${pts.length !== 1 ? 's' : ''}`;
+    }
+
+    if (pts.length === 0) {
+      if (runCanvasHint) runCanvasHint.hidden = false;
+      return;
+    }
+    if (runCanvasHint) runCanvasHint.hidden = true;
+
+    // Compute bounding box
+    let minLat = pts[0].lat, maxLat = pts[0].lat;
+    let minLng = pts[0].lng, maxLng = pts[0].lng;
+    pts.forEach(p => {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    });
+
+    const padding = 28;
+    const dLat = Math.max(maxLat - minLat, 0.0003);
+    const dLng = Math.max(maxLng - minLng, 0.0003);
+
+    const project = (p) => {
+      const px = padding + ((p.lng - minLng) / dLng) * (w - 2 * padding);
+      const py = h - padding - ((p.lat - minLat) / dLat) * (h - 2 * padding);
+      return [px, py];
+    };
+
+    // Draw breadcrumb path line
+    if (pts.length > 1) {
+      ctx.beginPath();
+      const [startPx, startPy] = project(pts[0]);
+      ctx.moveTo(startPx, startPy);
+      for (let i = 1; i < pts.length; i++) {
+        const [px, py] = project(pts[i]);
+        ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.45)';
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Draw Start marker
+    const [sx, sy] = project(pts[0]);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Start text label
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillText('Start', sx + 8, sy - 4);
+
+    // Draw Current Position with directional indicator
+    const lastPt = pts[pts.length - 1];
+    const [lx, ly] = project(lastPt);
+
+    ctx.beginPath();
+    ctx.arc(lx, ly, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    let heading = lastPt.heading;
+    if ((heading === null || heading === undefined) && pts.length >= 2) {
+      const prev = pts[pts.length - 2];
+      heading = calculateBearing(prev.lat, prev.lng, lastPt.lat, lastPt.lng);
+    }
+    if (heading !== null && heading !== undefined) {
+      const rad = (heading - 90) * Math.PI / 180;
+      const arrowLen = 14;
+      const ax = lx + Math.cos(rad) * arrowLen;
+      const ay = ly + Math.sin(rad) * arrowLen;
+
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(lx + Math.cos(rad + 2.5) * 6, ly + Math.sin(rad + 2.5) * 6);
+      ctx.lineTo(lx, ly);
+      ctx.lineTo(lx + Math.cos(rad - 2.5) * 6, ly + Math.sin(rad - 2.5) * 6);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      if (runDirectionBadge) {
+        runDirectionBadge.textContent = `Heading: ${bearingToCardinal(heading)}`;
+      }
+    }
+  }
+
+  function checkRunGoalReached() {
+    if (!activeRun || !activeRun.active || activeRun.goalReachedNotified) return;
+    if (activeRun.goal > 0 && activeRun.distanceKm >= activeRun.goal) {
+      activeRun.goalReachedNotified = true;
+      saveJSON('plates_active_run', activeRun);
+
+      // 1. Play sound chime
+      playGoalReachedChime();
+
+      // 2. Pocket vibration
+      if (navigator.vibrate) {
+        navigator.vibrate([300, 150, 300, 150, 600]);
+      }
+
+      // 3. Screen light-up celebration flash overlay
+      if (runScreenFlash) {
+        runScreenFlash.hidden = false;
+        runScreenFlash.style.animation = 'none';
+        void runScreenFlash.offsetWidth; // trigger reflow
+        runScreenFlash.style.animation = 'runLightUpFlash 1.8s ease-out';
+      }
+
+      // 4. Update flash text
+      if (runFlashTitle) runFlashTitle.textContent = 'Goal Completed!';
+      if (runFlashGoalText) runFlashGoalText.textContent = `${activeRun.goal}.00 km Finished`;
+      const timeStr = formatRunTime(activeRun.elapsedSeconds);
+      const paceStr = formatRunPace(activeRun.distanceKm > 0 ? activeRun.elapsedSeconds / activeRun.distanceKm : 0);
+      if (runFlashStatsText) runFlashStatsText.textContent = `${timeStr} · Avg Pace: ${paceStr} /km`;
+    }
+  }
+
+  function updateRunHUD() {
+    if (!activeRun) return;
+
+    const dist = activeRun.distanceKm || 0;
+    if (runDistanceVal) runDistanceVal.textContent = dist.toFixed(2);
+
+    const goal = activeRun.goal || 0;
+    if (runTargetBadge) {
+      runTargetBadge.textContent = goal > 0 ? `Target: ${goal.toFixed(2)} km` : 'Target: Free Run';
+    }
+
+    if (goal > 0) {
+      const pct = Math.min(100, Math.round((dist / goal) * 100));
+      const rem = Math.max(0, goal - dist);
+      if (runProgressBar) runProgressBar.style.width = `${pct}%`;
+      if (runProgressPercent) runProgressPercent.textContent = `${pct}%`;
+      if (runRemainingLabel) {
+        runRemainingLabel.textContent = rem > 0 ? `${rem.toFixed(2)} km to go` : 'Goal reached!';
+      }
+    } else {
+      if (runProgressBar) runProgressBar.style.width = '100%';
+      if (runProgressPercent) runProgressPercent.textContent = 'Free';
+      if (runRemainingLabel) runRemainingLabel.textContent = 'Running';
+    }
+
+    // Time & Pace
+    let elapsed = activeRun.elapsedSeconds || 0;
+    if (activeRun.active && !activeRun.paused && activeRun.startTime) {
+      elapsed = Math.floor((Date.now() - activeRun.startTime - activeRun.totalPausedMs) / 1000);
+      activeRun.elapsedSeconds = elapsed;
+    }
+    if (runTimerVal) runTimerVal.textContent = formatRunTime(elapsed);
+
+    // Avg pace
+    const avgSecPerKm = dist > 0.05 ? elapsed / dist : 0;
+    if (runAvgPaceVal) runAvgPaceVal.textContent = formatRunPace(avgSecPerKm);
+
+    // Current pace from recent points
+    let curSecPerKm = avgSecPerKm;
+    const pts = activeRun.points || [];
+    if (pts.length >= 2) {
+      const p1 = pts[pts.length - 2];
+      const p2 = pts[pts.length - 1];
+      const dt = (p2.time - p1.time) / 1000;
+      const dd = haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+      if (dd > 0.003 && dt > 0) {
+        curSecPerKm = dt / dd;
+      }
+    }
+    if (runPaceVal) runPaceVal.textContent = formatRunPace(curSecPerKm);
+
+    // Update active nav dot
+    if (runActiveIndicator) {
+      runActiveIndicator.hidden = !activeRun.active;
+    }
+
+    // Update buttons & GPS chip
+    if (activeRun.active) {
+      if (runIdleActions) runIdleActions.style.display = 'none';
+      if (runActiveActions) runActiveActions.style.display = 'flex';
+      if (btnPauseRun) btnPauseRun.textContent = activeRun.paused ? 'Resume ▶' : 'Pause ⏸';
+      if (runGpsStatus) {
+        runGpsStatus.textContent = activeRun.paused ? 'GPS Paused' : 'GPS Tracking';
+        runGpsStatus.className = activeRun.paused ? 'gps-status-chip paused' : 'gps-status-chip active';
+      }
+    } else {
+      if (runIdleActions) runIdleActions.style.display = 'block';
+      if (runActiveActions) runActiveActions.style.display = 'none';
+      if (runGpsStatus) {
+        runGpsStatus.textContent = 'GPS Ready';
+        runGpsStatus.className = 'gps-status-chip';
+      }
+    }
+
+    // Sync goal selector buttons
+    if (runGoalBtns) {
+      runGoalBtns.forEach(btn => {
+        const g = parseFloat(btn.dataset.goal);
+        btn.classList.toggle('active', g === activeRun.goal);
+      });
+    }
+  }
+
+  function handleGpsPosition(pos) {
+    if (!activeRun || !activeRun.active || activeRun.paused) return;
+
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const speed = pos.coords.speed;
+    const heading = pos.coords.heading;
+    const accuracy = pos.coords.accuracy;
+    const now = Date.now();
+
+    // Discard noise if accuracy is too low
+    if (accuracy && accuracy > 40) return;
+
+    if (activeRun.lastPosition) {
+      const stepKm = haversineDistance(activeRun.lastPosition.lat, activeRun.lastPosition.lng, lat, lng);
+      // Ignore tiny jitter < 2.5 meters
+      if (stepKm > 0.0025) {
+        activeRun.distanceKm += stepKm;
+      }
+    }
+
+    activeRun.lastPosition = { lat, lng, time: now };
+    activeRun.points.push({ lat, lng, time: now, speed, heading });
+
+    saveJSON('plates_active_run', activeRun);
+
+    drawRunTrail();
+    updateRunHUD();
+    checkRunGoalReached();
+  }
+
+  function handleGpsError(err) {
+    console.warn('Geolocation watch error:', err);
+    if (runGpsStatus) {
+      runGpsStatus.textContent = 'GPS Error / Unavailable';
+      runGpsStatus.className = 'gps-status-chip';
+    }
+  }
+
+  function startGpsTracking() {
+    if ('geolocation' in navigator) {
+      try {
+        runWatchId = navigator.geolocation.watchPosition(handleGpsPosition, handleGpsError, {
+          enableHighAccuracy: true,
+          maximumAge: 1000,
+          timeout: 15000,
+        });
+      } catch (err) {
+        console.warn('Could not start geolocation watch:', err);
+      }
+    }
+  }
+
+  function stopGpsTracking() {
+    if (runWatchId !== null && 'geolocation' in navigator) {
+      try {
+        navigator.geolocation.clearWatch(runWatchId);
+      } catch {}
+      runWatchId = null;
+    }
+  }
+
+  function startActiveRun() {
+    const now = Date.now();
+    activeRun.active = true;
+    activeRun.paused = false;
+    activeRun.startTime = now;
+    activeRun.pauseStartTime = null;
+    activeRun.totalPausedMs = 0;
+    activeRun.distanceKm = 0;
+    activeRun.elapsedSeconds = 0;
+    activeRun.points = [];
+    activeRun.lastPosition = null;
+    activeRun.goalReachedNotified = false;
+
+    saveJSON('plates_active_run', activeRun);
+
+    keepScreenOn(true);
+
+    startGpsTracking();
+
+    if (runTickerInterval) clearInterval(runTickerInterval);
+    runTickerInterval = setInterval(() => {
+      if (activeRun.active && !activeRun.paused) {
+        updateRunHUD();
+      }
+    }, 1000);
+
+    updateRunHUD();
+    drawRunTrail();
+    toast('Run started! Tracking GPS distance.');
+  }
+
+  function pauseActiveRun() {
+    if (!activeRun.active) return;
+    if (activeRun.paused) {
+      // Resume
+      if (activeRun.pauseStartTime) {
+        activeRun.totalPausedMs += (Date.now() - activeRun.pauseStartTime);
+        activeRun.pauseStartTime = null;
+      }
+      activeRun.paused = false;
+      saveJSON('plates_active_run', activeRun);
+      startGpsTracking();
+      toast('Run resumed');
+    } else {
+      // Pause
+      activeRun.paused = true;
+      activeRun.pauseStartTime = Date.now();
+      saveJSON('plates_active_run', activeRun);
+      stopGpsTracking();
+      toast('Run paused');
+    }
+    updateRunHUD();
+  }
+
+  function finishActiveRun(save = true) {
+    stopGpsTracking();
+    if (runTickerInterval) {
+      clearInterval(runTickerInterval);
+      runTickerInterval = null;
+    }
+
+    keepScreenOn(false);
+
+    if (save && activeRun.distanceKm > 0.05) {
+      const goalName = activeRun.goal > 0 ? `${activeRun.goal}K Run` : 'Outdoor Run';
+      const durationSec = Math.round(activeRun.elapsedSeconds || 1);
+      const dist = Math.round(activeRun.distanceKm * 100) / 100;
+      const pace = formatRunPace(durationSec / dist);
+
+      const runEntry = {
+        id: 'run-' + uid(),
+        date: new Date().toISOString(),
+        routineId: 'outdoor-run-session',
+        routineName: goalName,
+        bodyPart: 'Cardio',
+        durationSeconds: durationSec,
+        distance: dist,
+        distanceUnit: 'km',
+        avgPace: pace,
+        totalVolume: 0,
+        exercises: [
+          {
+            name: goalName,
+            bodyPart: 'Cardio',
+            mode: 'distance',
+            sets: [
+              {
+                distance: dist,
+                distanceUnit: 'km',
+                reps: 1,
+                seconds: durationSec,
+                timestamp: Date.now(),
+              }
+            ]
+          }
+        ]
+      };
+
+      history.unshift(runEntry);
+      saveJSON('plates_history', history);
+      renderHistory();
+      renderDashboard();
+      toast(`${goalName} saved! (${dist} km in ${formatRunTime(durationSec)})`);
+    }
+
+    activeRun = {
+      active: false,
+      paused: false,
+      goal: activeRun.goal || 5,
+      startTime: null,
+      pauseStartTime: null,
+      totalPausedMs: 0,
+      distanceKm: 0,
+      elapsedSeconds: 0,
+      points: [],
+      goalReachedNotified: false,
+    };
+    saveJSON('plates_active_run', activeRun);
+
+    updateRunHUD();
+    drawRunTrail();
+  }
+
+  function discardActiveRun() {
+    if (!confirm('Discard this run? Your progress will not be saved.')) return;
+    finishActiveRun(false);
+    toast('Run discarded');
+  }
+
+  function renderRunView() {
+    updateRunHUD();
+    setTimeout(() => drawRunTrail(), 50);
+  }
+
+  // Simulation helpers for testing or indoor treadmill
+  window.__simulateRunStep = function(lat, lng, heading = 45) {
+    handleGpsPosition({
+      coords: {
+        latitude: lat,
+        longitude: lng,
+        speed: 3.2,
+        heading: heading,
+        accuracy: 5,
+      }
+    });
+  };
+
+  window.__simulateRunDistance = function(addKm = 1.0) {
+    if (!activeRun || !activeRun.active) return;
+    const last = activeRun.lastPosition || { lat: 37.7749, lng: -122.4194, time: Date.now() };
+    const newLat = last.lat + (addKm * 0.009);
+    const newLng = last.lng + (addKm * 0.005);
+    window.__simulateRunStep(newLat, newLng, 35);
+  };
+
+  // Wire Run Tracker UI Events
+  if (runGoalBtns) {
+    runGoalBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const goal = parseFloat(btn.dataset.goal);
+        activeRun.goal = goal;
+        saveJSON('plates_active_run', activeRun);
+        updateRunHUD();
+      });
+    });
+  }
+
+  if (btnSetCustomGoal && runCustomGoalInput) {
+    btnSetCustomGoal.addEventListener('click', () => {
+      const val = parseFloat(runCustomGoalInput.value);
+      if (val && val > 0) {
+        activeRun.goal = Math.round(val * 10) / 10;
+        saveJSON('plates_active_run', activeRun);
+        updateRunHUD();
+        toast(`Distance goal set to ${activeRun.goal} km`);
+      }
+    });
+  }
+
+  if (btnStartRun) {
+    btnStartRun.addEventListener('click', startActiveRun);
+  }
+  if (btnPauseRun) {
+    btnPauseRun.addEventListener('click', pauseActiveRun);
+  }
+  if (btnFinishRun) {
+    btnFinishRun.addEventListener('click', () => finishActiveRun(true));
+  }
+  if (btnDiscardRun) {
+    btnDiscardRun.addEventListener('click', discardActiveRun);
+  }
+
+  if (btnSaveRunFlash) {
+    btnSaveRunFlash.addEventListener('click', () => {
+      if (runScreenFlash) runScreenFlash.hidden = true;
+      finishActiveRun(true);
+      switchTab('history');
+    });
+  }
+  if (btnCloseRunFlash) {
+    btnCloseRunFlash.addEventListener('click', () => {
+      if (runScreenFlash) runScreenFlash.hidden = true;
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    const runTab = $('#tab-run');
+    if (runTab && runTab.classList.contains('active')) {
+      drawRunTrail();
+    }
+  });
+
+  // Restore active run ticker if reloaded mid-run
+  if (activeRun && activeRun.active) {
+    keepScreenOn(true);
+    startGpsTracking();
+    if (!runTickerInterval) {
+      runTickerInterval = setInterval(() => {
+        if (activeRun.active && !activeRun.paused) {
+          updateRunHUD();
+        }
+      }, 1000);
+    }
+  }
+
+  // ── Nutrition Shopping List ──
   function updateShoppingBudget() {
     if (!shoppingList.length) {
       if (shoppingBudgetBar) shoppingBudgetBar.style.display = 'none';

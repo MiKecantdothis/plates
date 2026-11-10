@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=23" />
+  <link rel="stylesheet" href="index.css?v=24" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -109,6 +109,14 @@
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
       <span class="nav-label">History</span>
+    </button>
+    <button class="nav-btn" data-tab="run" id="nav-btn-run">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 14l-4-4 2-5-5 3-4-2v6l3 2-2 6"></path>
+        <circle cx="17" cy="4" r="2"></circle>
+      </svg>
+      <span class="nav-label">Run</span>
+      <span class="active-dot" id="run-active-indicator" hidden></span>
     </button>
     <button class="nav-btn" data-tab="shopping" id="nav-btn-shopping">
       <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -564,6 +572,100 @@
       </div>
     </section>
 
+    <!-- ── RUN TRACKER TAB ── -->
+    <section id="tab-run" class="tab-panel">
+      <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <h1>Run Tracker</h1>
+          <p class="subtitle" style="margin-bottom: 0;">Goal-based running with live breadcrumb trail.</p>
+        </div>
+        <span class="gps-status-chip" id="run-gps-status">GPS Ready</span>
+      </div>
+
+      <!-- Distance Goal Selection -->
+      <div class="run-goal-card" id="run-goal-card">
+        <div class="card-label">DISTANCE GOAL:</div>
+        <div class="run-goal-selector" id="run-goal-selector" role="group" aria-label="Select run goal">
+          <button type="button" class="run-goal-btn" data-goal="1">1K</button>
+          <button type="button" class="run-goal-btn" data-goal="3">3K</button>
+          <button type="button" class="run-goal-btn active" data-goal="5">5K</button>
+          <button type="button" class="run-goal-btn" data-goal="10">10K</button>
+          <button type="button" class="run-goal-btn" data-goal="0">Free Run</button>
+        </div>
+        <div class="run-custom-goal-row" style="margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <label for="run-custom-goal-input" style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">Or Custom Distance (km):</label>
+          <input type="number" id="run-custom-goal-input" placeholder="e.g. 5.5" min="0.1" max="100" step="0.1" style="max-width: 120px; padding: 6px 10px; font-size: 13px;" />
+          <button type="button" id="btn-set-custom-goal" class="btn-secondary btn-small">Set</button>
+        </div>
+      </div>
+
+      <!-- Live Run HUD -->
+      <div class="run-hud-card" id="run-hud-card">
+        <div class="run-hud-top">
+          <span class="run-hud-badge" id="run-target-badge">Target: 5.00 km</span>
+          <span class="run-direction-badge" id="run-direction-badge">Heading: --</span>
+        </div>
+
+        <div class="run-metric-primary-row">
+          <div class="run-metric-primary">
+            <span id="run-distance-val">0.00</span>
+            <span class="run-metric-unit">km</span>
+          </div>
+        </div>
+
+        <!-- Progress to Goal Bar -->
+        <div class="run-progress-container" id="run-progress-container">
+          <div class="run-progress-track">
+            <div class="run-progress-fill" id="run-progress-bar" style="width: 0%"></div>
+          </div>
+          <div class="run-progress-labels">
+            <span id="run-progress-percent">0%</span>
+            <span id="run-remaining-label">5.00 km to go</span>
+          </div>
+        </div>
+
+        <!-- Secondary Metrics Grid -->
+        <div class="run-metrics-grid">
+          <div class="run-metric-item">
+            <span class="run-metric-label">TIME</span>
+            <span class="run-metric-value" id="run-timer-val">00:00</span>
+          </div>
+          <div class="run-metric-item">
+            <span class="run-metric-label">CURRENT PACE</span>
+            <span class="run-metric-value" id="run-pace-val">--'--"</span>
+          </div>
+          <div class="run-metric-item">
+            <span class="run-metric-label">AVG PACE</span>
+            <span class="run-metric-value" id="run-avg-pace-val">--'--"</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trail Map Canvas (No Maps, Pure Vector Breadcrumb) -->
+      <div class="run-trail-card">
+        <div class="run-trail-header">
+          <div class="card-label">TRAIL MAP</div>
+          <span class="run-trail-points-count" id="run-trail-points-count">0 points</span>
+        </div>
+        <div class="run-canvas-wrapper" style="position: relative;">
+          <canvas id="run-trail-canvas" width="400" height="240"></canvas>
+          <div id="run-canvas-hint" class="run-canvas-hint">Your breadcrumb trail will draw live as you run</div>
+        </div>
+      </div>
+
+      <!-- Run Action Buttons -->
+      <div class="run-actions-card">
+        <div id="run-idle-actions">
+          <button type="button" id="btn-start-run" class="btn-primary btn-run-large">Start Run ▶</button>
+        </div>
+        <div id="run-active-actions" style="display: none; gap: 8px; flex-wrap: wrap;">
+          <button type="button" id="btn-pause-run" class="btn-secondary btn-run-control">Pause ⏸</button>
+          <button type="button" id="btn-finish-run" class="btn-primary btn-run-control">Finish Run ⏹</button>
+          <button type="button" id="btn-discard-run" class="btn-danger btn-run-control">Discard ✕</button>
+        </div>
+      </div>
+    </section>
+
     <!-- ── SHOPPING TAB ── -->
     <section id="tab-shopping" class="tab-panel">
       <div class="section-header">
@@ -725,8 +827,28 @@
     </div>
   </div>
 
+  <!-- Screen Light-Up & Celebration Flash Modal -->
+  <div id="run-screen-flash" class="run-screen-flash" hidden>
+    <div class="run-flash-content">
+      <div class="run-flash-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 44px; height: 44px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <circle cx="12" cy="12" r="6"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+      </div>
+      <div class="run-flash-title" id="run-flash-title">Goal Completed!</div>
+      <div class="run-flash-goal" id="run-flash-goal-text">5.00 km Finished</div>
+      <div class="run-flash-stats" id="run-flash-stats-text">00:24:18 · Avg Pace: 4'51" /km</div>
+      <div class="run-flash-actions">
+        <button type="button" id="btn-save-run-flash" class="btn-primary" style="min-height: 44px; width: 100%;">Save to History</button>
+        <button type="button" id="btn-close-run-flash" class="btn-secondary" style="min-height: 44px; width: 100%;">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=23"></script>
+  <script src="app.js?v=24"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

@@ -2848,3 +2848,304 @@ body {
   }
 }
 
+/* ══════════════════════════════════════════
+   RUN TRACKER & GOAL-BASED RUNNING
+   ══════════════════════════════════════════ */
+.gps-status-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all var(--transition-fast);
+}
+.gps-status-chip.active {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.08);
+}
+.gps-status-chip.paused {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.run-goal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.run-goal-selector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.run-goal-selector::-webkit-scrollbar {
+  display: none;
+}
+.run-goal-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+  min-width: 58px;
+  white-space: nowrap;
+}
+.run-goal-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+.run-goal-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-base);
+  border-color: var(--text-primary);
+}
+
+.run-hud-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.run-hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.run-hud-badge,
+.run-direction-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.run-metric-primary-row {
+  margin-bottom: 18px;
+}
+.run-metric-primary {
+  font-family: var(--font-display);
+  font-size: 58px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+.run-metric-unit {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: normal;
+}
+.run-progress-container {
+  margin-bottom: 20px;
+}
+.run-progress-track {
+  height: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.run-progress-fill {
+  height: 100%;
+  background: var(--text-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+.run-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.run-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.run-metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.run-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.run-metric-value {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.run-trail-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.run-trail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.run-trail-points-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.run-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  background: #080808;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+#run-trail-canvas {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+.run-canvas-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  text-align: center;
+  padding: 16px;
+}
+
+.run-actions-card {
+  margin-bottom: 24px;
+}
+.btn-run-large {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.btn-run-control {
+  flex: 1;
+  min-height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── Screen Light-Up & Celebration Flash ── */
+.run-screen-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: runLightUpFlash 1.8s ease-out;
+}
+@keyframes runLightUpFlash {
+  0% {
+    background: #ffffff;
+    box-shadow: inset 0 0 120px #ffffff;
+  }
+  20% {
+    background: rgba(255, 255, 255, 0.25);
+  }
+  40% {
+    background: #ffffff;
+    box-shadow: inset 0 0 120px #ffffff;
+  }
+  65% {
+    background: rgba(255, 255, 255, 0.35);
+  }
+  100% {
+    background: rgba(0, 0, 0, 0.88);
+  }
+}
+.run-flash-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+.run-flash-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.run-flash-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.run-flash-goal {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.run-flash-stats {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+.run-flash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+

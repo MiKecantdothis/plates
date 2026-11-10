@@ -59,6 +59,6 @@ test('what you type is never overwritten by the screen refreshing', async ({ pag
 
   await page.fill('#set-weight-input', '65'); // going up for set 2
   await page.click('#nav-btn-dashboard');
-  await page.click('#nav-btn-active'); // this redraws the workout
+  await page.click('#btn-dash-resume'); // resumes the active workout and redraws
   await expect(page.locator('#set-weight-input')).toHaveValue('65');
 });

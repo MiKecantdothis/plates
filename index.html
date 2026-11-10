@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Track workouts, rest periods, and nutrition shopping lists — all in one sleek gym companion app." />
-  <meta name="theme-color" content="#05070a" id="meta-theme-color" />
+  <meta name="theme-color" content="#080c14" id="meta-theme-color" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Plates" />
@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=24" />
+  <link rel="stylesheet" href="index.css?v=25" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -94,21 +94,7 @@
         <path d="M20 10v4"></path>
       </svg>
       <span class="nav-label">Routines</span>
-    </button>
-    <button class="nav-btn" data-tab="active" id="nav-btn-active">
-      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-      </svg>
-      <span class="nav-label">Live Session</span>
       <span class="active-dot" id="active-indicator" hidden></span>
-    </button>
-    <button class="nav-btn" data-tab="history" id="nav-btn-history">
-      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"></line>
-        <line x1="12" y1="20" x2="12" y2="4"></line>
-        <line x1="6" y1="20" x2="6" y2="14"></line>
-      </svg>
-      <span class="nav-label">History</span>
     </button>
     <button class="nav-btn" data-tab="run" id="nav-btn-run">
       <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -117,14 +103,6 @@
       </svg>
       <span class="nav-label">Run</span>
       <span class="active-dot" id="run-active-indicator" hidden></span>
-    </button>
-    <button class="nav-btn" data-tab="shopping" id="nav-btn-shopping">
-      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <path d="M16 10a4 4 0 0 1-8 0"></path>
-      </svg>
-      <span class="nav-label">Shopping</span>
     </button>
   </nav>
 
@@ -324,6 +302,53 @@
             <button type="button" id="btn-export-backup" class="btn-secondary btn-small" title="Export all your workouts and routines to a JSON file">Export Backup</button>
             <button type="button" id="btn-import-backup" class="btn-secondary btn-small" title="Import workouts and routines from a JSON backup">Import Backup</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Nutrition & Grocery Shopping List -->
+      <div class="dashboard-card shopping-dashboard-card" id="dashboard-shopping-section">
+        <div class="card-header-row">
+          <div>
+            <div class="dashboard-card-title">Shopping & Nutrition List</div>
+            <div class="dashboard-card-subtitle">Keep track of gym groceries, meals & supplements</div>
+          </div>
+        </div>
+
+        <div class="shopping-input-row" style="margin-top: 14px;">
+          <input type="text" id="shopping-input" placeholder="Add an item…" />
+          <div class="shopping-price-wrapper">
+            <span class="currency-symbol">₹</span>
+            <input type="number" id="shopping-price" placeholder="Price" min="0" step="1" />
+          </div>
+          <select id="shopping-category">
+            <option value="protein">Protein</option>
+            <option value="supplements">Supplements</option>
+            <option value="carbs">Carbs</option>
+            <option value="fruits-veg">Fruits & Veg</option>
+            <option value="dairy">Dairy</option>
+            <option value="other">Other</option>
+          </select>
+          <button id="btn-add-shopping" class="btn-primary">Add</button>
+        </div>
+
+        <!-- Budget & Expense Summary Bar -->
+        <div id="shopping-budget-bar" class="shopping-budget-bar" style="margin-top: 14px;">
+          <div class="shopping-budget-card">
+            <span class="budget-card-label">Estimated Total</span>
+            <span class="budget-card-value" id="shopping-total-spend">₹0</span>
+          </div>
+          <div class="shopping-budget-card">
+            <span class="budget-card-label">In Cart (Done)</span>
+            <span class="budget-card-value budget-in-cart" id="shopping-cart-spend">₹0</span>
+          </div>
+          <div class="shopping-budget-card">
+            <span class="budget-card-label">Remaining</span>
+            <span class="budget-card-value budget-remaining" id="shopping-remaining-spend">₹0</span>
+          </div>
+        </div>
+
+        <div id="shopping-list" class="shopping-list" style="margin-top: 14px;">
+          <!-- items injected by JS -->
         </div>
       </div>
     </section>
@@ -559,7 +584,10 @@
     <!-- ── HISTORY TAB ── -->
     <section id="tab-history" class="tab-panel">
       <div class="section-header">
-        <h1>Workout History</h1>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+          <button type="button" id="btn-history-back" class="btn-secondary btn-small" title="Return to Dashboard">← Back to Dashboard</button>
+          <h1 style="margin-bottom: 0;">Workout History</h1>
+        </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button type="button" id="btn-export-history" class="btn-secondary btn-small" title="Export all your workouts and routines to JSON">Export Backup</button>
           <button type="button" id="btn-import-history" class="btn-secondary btn-small" title="Import workouts from JSON backup">Import Backup</button>
@@ -663,50 +691,6 @@
           <button type="button" id="btn-finish-run" class="btn-primary btn-run-control">Finish Run ⏹</button>
           <button type="button" id="btn-discard-run" class="btn-danger btn-run-control">Discard ✕</button>
         </div>
-      </div>
-    </section>
-
-    <!-- ── SHOPPING TAB ── -->
-    <section id="tab-shopping" class="tab-panel">
-      <div class="section-header">
-        <h1>Shopping List</h1>
-      </div>
-      <p class="subtitle">Keep track of supplements, meals & groceries.</p>
-      <div class="shopping-input-row">
-        <input type="text" id="shopping-input" placeholder="Add an item…" />
-        <div class="shopping-price-wrapper">
-          <span class="currency-symbol">₹</span>
-          <input type="number" id="shopping-price" placeholder="Price" min="0" step="1" />
-        </div>
-        <select id="shopping-category">
-          <option value="protein">Protein</option>
-          <option value="supplements">Supplements</option>
-          <option value="carbs">Carbs</option>
-          <option value="fruits-veg">Fruits & Veg</option>
-          <option value="dairy">Dairy</option>
-          <option value="other">Other</option>
-        </select>
-        <button id="btn-add-shopping" class="btn-primary">Add</button>
-      </div>
-
-      <!-- Budget & Expense Summary Bar -->
-      <div id="shopping-budget-bar" class="shopping-budget-bar">
-        <div class="shopping-budget-card">
-          <span class="budget-card-label">Estimated Total</span>
-          <span class="budget-card-value" id="shopping-total-spend">₹0</span>
-        </div>
-        <div class="shopping-budget-card">
-          <span class="budget-card-label">In Cart (Done)</span>
-          <span class="budget-card-value budget-in-cart" id="shopping-cart-spend">₹0</span>
-        </div>
-        <div class="shopping-budget-card">
-          <span class="budget-card-label">Remaining</span>
-          <span class="budget-card-value budget-remaining" id="shopping-remaining-spend">₹0</span>
-        </div>
-      </div>
-
-      <div id="shopping-list" class="shopping-list">
-        <!-- items injected by JS -->
       </div>
     </section>
 
@@ -848,7 +832,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

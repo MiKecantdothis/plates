@@ -28,7 +28,8 @@ test('names and ids from storage are shown as text, never run', async ({ page })
   await page.locator('#exercise-list input').first().focus();
   await expect(page.locator('#exercise-list input').first()).toHaveValue(sneaky);
   await page.click('#btn-cancel-routine');
-  await page.click('#nav-btn-shopping');
+  await page.click('#nav-btn-dashboard');
+  await expect(page.locator('#dashboard-shopping-section')).toBeVisible();
 
   const elementsWithHandlers = await page.evaluate(() => [...document.querySelectorAll('*')]
     .filter((el) => [...el.attributes].some((attr) => attr.name.startsWith('on'))).length);

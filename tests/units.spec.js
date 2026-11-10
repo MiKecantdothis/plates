@@ -75,7 +75,7 @@ test.describe('someone who logged sets before units existed', () => {
     await page.click('#btn-legacy-kg');
     await expect(page.locator('#unit-question')).toBeHidden();
     await expect(page.locator('#kpi-total-volume')).toHaveText('1,000 kg');
-    await page.click('#nav-btn-history');
+    await page.click('#btn-goto-history-tab');
     await expect(page.locator('.history-exercise').first()).toContainText('100 kg × 10');
 
     await page.reload();

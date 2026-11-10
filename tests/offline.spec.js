@@ -13,7 +13,7 @@ test('the app opens offline after a single visit', async ({ page }) => {
   await page.reload();
 
   // The styles loaded (the app's near-black background)...
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(5, 7, 10)');
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(8, 12, 20)');
   // ...and the script ran (it swaps the heading for a greeting)
   await expect(page.locator('#dashboard-greeting')).toHaveText(/Ready to lift\?/);
 });

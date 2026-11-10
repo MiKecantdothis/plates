@@ -1,49 +1,58 @@
 /* ============================================
-   Plates — Deep Black & Blue Luxury Design System
+   Plates — Dragon Ball Z Energy Design System
+   Goku Gi Orange, Kame Indigo Blue, Shenron Emerald, Deep Capsule Black
+   (Super Saiyan Gold omitted per specification)
    ============================================ */
 
-/* ── Theme Variables: Minimalist Monochrome (Black & White) ── */
+/* ── Theme Variables: Dragon Ball Palette (NO Gold) ── */
 :root {
   --theme: dark;
 
-  /* Background layers (Crisp deep black & obsidian) */
-  --bg-base: #05070a;
-  --bg-surface: #0a0a0a;
-  --bg-elevated: #141414;
-  --bg-hover: #1f1f1f;
-  --bg-active: #2a2a2a;
+  /* Background layers (Deep Capsule Black & Weighted Gi Slate) */
+  --bg-base: #080c14;
+  --bg-surface: #111828;
+  --bg-elevated: #172138;
+  --bg-hover: #1e293b;
+  --bg-active: #27354f;
 
-  /* General App Monochrome Accents (Crisp White & Silver) */
-  --accent: #ffffff;
-  --accent-light: #ffffff;
-  --accent-dark: #d4d4d4;
-  --accent-glow: rgba(255, 255, 255, 0.18);
-  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #888888 100%);
-  --accent-subtle: rgba(255, 255, 255, 0.08);
+  /* Goku Gi Orange Accents */
+  --accent: #ff6600;
+  --accent-light: #ff7a1a;
+  --accent-dark: #e05a00;
+  --accent-glow: rgba(255, 102, 0, 0.28);
+  --accent-gradient: linear-gradient(135deg, #ff6600 0%, #ff8533 100%);
+  --accent-subtle: rgba(255, 102, 0, 0.12);
 
-  /* Status & Functional colors in Monochrome */
-  --green: #ffffff;
-  --green-glow: rgba(255, 255, 255, 0.18);
+  /* Kame Indigo Blue (Secondary) */
+  --secondary-accent: #1a4ce0;
+  --secondary-accent-light: #2563eb;
+  --secondary-accent-glow: rgba(26, 76, 224, 0.25);
+  --secondary-accent-subtle: rgba(26, 76, 224, 0.12);
+
+  /* Shenron Emerald & Functional Status Colors */
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.22);
+  --green-subtle: rgba(16, 185, 129, 0.12);
   --red: #f43f5e;
-  --red-subtle: rgba(244, 63, 94, 0.12);
-  --orange: #ffffff;
+  --red-subtle: rgba(244, 63, 94, 0.14);
+  --orange: #ff6600;
 
   /* Typography */
-  --text-primary: #ffffff;
-  --text-secondary: #a3a3a3;
-  --text-muted: #666666;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
-  /* Borders & Glassmorphism */
-  --border: rgba(255, 255, 255, 0.12);
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-accent: rgba(255, 255, 255, 0.32);
+  /* Borders & Ki Energy Borders */
+  --border: #1e293b;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(255, 102, 0, 0.45);
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.7);
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.85);
-  --shadow-glow: 0 0 24px rgba(255, 255, 255, 0.12);
-  --header-bg: rgba(5, 7, 10, 0.92);
-  --modal-bg: #0d0d0d;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.75);
+  --shadow-glow: 0 0 24px rgba(255, 102, 0, 0.18);
+  --header-bg: rgba(8, 12, 20, 0.92);
+  --modal-bg: #111828;
   --modal-backdrop: rgba(0, 0, 0, 0.85);
 
   /* Fonts & Geometry — Apple iPhone San Francisco (SF Pro) */
@@ -63,40 +72,46 @@
 [data-theme="light"] {
   --theme: light;
 
-  /* Monochrome Light background layers */
-  --bg-base: #f0f4f9;
+  /* Light background layers */
+  --bg-base: #f1f5f9;
   --bg-surface: #ffffff;
-  --bg-elevated: #f4f4f5;
-  --bg-hover: #e4e4e7;
-  --bg-active: #d4d4d8;
+  --bg-elevated: #f8fafc;
+  --bg-hover: #e2e8f0;
+  --bg-active: #cbd5e1;
 
-  --accent: #000000;
-  --accent-light: #18181b;
-  --accent-dark: #27272a;
-  --accent-glow: rgba(0, 0, 0, 0.14);
-  --accent-gradient: linear-gradient(135deg, #000000 0%, #52525b 100%);
-  --accent-subtle: rgba(0, 0, 0, 0.06);
+  --accent: #ea580c;
+  --accent-light: #f97316;
+  --accent-dark: #c2410c;
+  --accent-glow: rgba(234, 88, 12, 0.22);
+  --accent-gradient: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  --accent-subtle: rgba(234, 88, 12, 0.10);
 
-  --green: #000000;
-  --green-glow: rgba(0, 0, 0, 0.12);
-  --red: #e11d48;
-  --red-subtle: rgba(225, 29, 72, 0.1);
-  --orange: #000000;
+  --secondary-accent: #1d4ed8;
+  --secondary-accent-light: #2563eb;
+  --secondary-accent-glow: rgba(29, 78, 216, 0.20);
+  --secondary-accent-subtle: rgba(29, 78, 216, 0.10);
 
-  --text-primary: #09090b;
-  --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
+  --green: #059669;
+  --green-glow: rgba(5, 150, 105, 0.18);
+  --green-subtle: rgba(5, 150, 105, 0.10);
+  --red: #dc2626;
+  --red-subtle: rgba(220, 38, 38, 0.10);
+  --orange: #ea580c;
 
-  --border: rgba(0, 0, 0, 0.12);
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-accent: rgba(0, 0, 0, 0.35);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --border: rgba(15, 23, 42, 0.12);
+  --border-subtle: rgba(15, 23, 42, 0.06);
+  --border-accent: rgba(234, 88, 12, 0.40);
 
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
   --shadow-glow: 0 0 20px var(--accent-glow);
-  --header-bg: rgba(240, 244, 249, 0.92);
+  --header-bg: rgba(241, 245, 249, 0.94);
   --modal-bg: #ffffff;
-  --modal-backdrop: rgba(0, 0, 0, 0.55);
+  --modal-backdrop: rgba(15, 23, 42, 0.55);
 }
 
 
@@ -317,7 +332,7 @@ body {
   max-width: 980px;
   margin: 0 auto;
   display: flex;
-  gap: 6px;
+  gap: 8px;
   padding: 16px 24px 0;
 }
 
@@ -328,29 +343,31 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 12px 16px;
+  min-height: 44px;
   background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2.5px solid transparent;
   color: var(--text-muted);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   cursor: pointer;
   transition: all var(--transition-fast);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .nav-btn:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   background: var(--bg-surface);
 }
 
 .nav-btn.active {
-  color: #ffffff;
-  border-bottom-color: #ffffff;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
   background: transparent;
+  text-shadow: 0 0 12px var(--accent-glow);
 }
 
 
@@ -966,9 +983,9 @@ body {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
+  border: 1px solid var(--secondary-accent);
+  color: var(--secondary-accent-light);
+  background: var(--secondary-accent-subtle);
 }
 
 /* ── Body Part Filter Bar ── */
@@ -1005,10 +1022,10 @@ body {
 }
 
 .bodypart-chip.active {
-  background: var(--text-primary);
-  color: var(--bg-base);
-  border-color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 10px var(--accent-glow);
 }
 
 /* ── Body Part Groupings in Routines ── */
@@ -2619,14 +2636,16 @@ body {
   }
 
   #main-nav {
-    padding: 10px 16px 0;
+    padding: 10px 12px 0;
+    gap: 6px;
   }
 
   .nav-btn {
-    padding: 10px 6px;
-    font-size: 11px;
-    flex-direction: column;
-    gap: 4px;
+    padding: 10px 8px;
+    font-size: 13px;
+    min-height: 44px;
+    flex-direction: row;
+    gap: 6px;
   }
 
   .nav-icon {
@@ -2688,28 +2707,7 @@ body {
     flex-wrap: wrap;
   }
 
-  #main-nav {
-    padding: 8px 8px 0;
-  }
 
-  .nav-btn {
-    padding: 8px 3px;
-    font-size: 10px;
-    gap: 3px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .nav-icon-svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .nav-label {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 
   .dashboard-kpi-grid {
     grid-template-columns: repeat(2, 1fr);

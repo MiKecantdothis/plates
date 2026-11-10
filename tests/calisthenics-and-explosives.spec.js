@@ -174,8 +174,8 @@ test.describe('Weighted Calisthenics and Explosives Tracking Modes', () => {
     await seed(page, 'plates_unit', 'kg');
     await seed(page, 'plates_history', [historyEntry]);
 
-    // Navigate to History tab
-    await page.click('#nav-btn-history');
+    // Navigate to History tab via Dashboard
+    await page.click('#btn-goto-history-tab');
     await expect(page.locator('.history-card')).toHaveCount(1);
 
     const historyCard = page.locator('.history-card').first();

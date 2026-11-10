@@ -1,18 +1,14 @@
 const { test, expect, stored } = require('./support/fixtures');
 
 test.describe('Run Tracker with Breadcrumb Trail and Goal Alerts', () => {
-  test('run tab is placed right before shopping tab and switches view cleanly', async ({ page }) => {
+  test('taskbar contains exactly 3 tabs: Dashboard, Routines, and Run, and switches cleanly', async ({ page }) => {
     await page.goto('/');
 
     const navButtons = page.locator('#main-nav .nav-btn');
     const buttonIds = await navButtons.evaluateAll((btns) => btns.map((b) => b.id));
 
-    // Must be placed right before shopping tab
-    const runIdx = buttonIds.indexOf('nav-btn-run');
-    const shoppingIdx = buttonIds.indexOf('nav-btn-shopping');
-    expect(runIdx).toBeGreaterThan(-1);
-    expect(shoppingIdx).toBeGreaterThan(-1);
-    expect(runIdx).toBe(shoppingIdx - 1);
+    // Must contain exactly Dashboard, Routines, and Run
+    expect(buttonIds).toEqual(['nav-btn-dashboard', 'nav-btn-workouts', 'nav-btn-run']);
 
     // Clicking Run tab opens Run panel
     await page.click('#nav-btn-run');
@@ -123,3 +119,4 @@ test.describe('Run Tracker with Breadcrumb Trail and Goal Alerts', () => {
     await expect(historyCard).toContainText('Cardio');
   });
 });
+

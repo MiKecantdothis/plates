@@ -65,7 +65,7 @@ test('clearing history can be undone', async ({ page }) => {
     exercises: [{ name: 'Barbell Back Squat', sets: [{ weight: 100, reps: 10, timestamp: 0 }] }],
   }));
   await seed(page, 'plates_history', workouts);
-  await page.click('#nav-btn-history');
+  await page.click('#btn-goto-history-tab');
 
   let question = '';
   page.once('dialog', (dialog) => { question = dialog.message(); dialog.accept(); });
@@ -101,7 +101,7 @@ test('legacy "lbs" unit preference is normalized to "lb" without losing data', a
   expect(unit).toBe('lb');
 
   // History should be present and intact
-  await page.click('#nav-btn-history');
+  await page.click('#btn-goto-history-tab');
   await expect(page.locator('.history-card')).toHaveCount(1);
   await expect(page.locator('.history-exercise')).toContainText('100 lb × 5');
 });

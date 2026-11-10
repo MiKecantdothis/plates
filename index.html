@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin />
   <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="index.css?v=21" />
+  <link rel="stylesheet" href="index.css?v=22" />
 </head>
 <body>
   <!-- ───── Top Bar ───── -->
@@ -350,17 +350,15 @@
         <button id="btn-add-routine" class="btn-primary">+ Add Routine</button>
       </div>
 
-      <!-- Body Part Filter Chips -->
+      <!-- Routine Type Filter Chips -->
       <div class="bodypart-filters-bar">
-        <div class="bodypart-filters" id="bodypart-filters" role="tablist" aria-label="Filter workouts by body part">
-          <button type="button" class="bodypart-chip active" data-part="all">All</button>
-          <button type="button" class="bodypart-chip" data-part="Chest">Chest</button>
-          <button type="button" class="bodypart-chip" data-part="Back">Back</button>
-          <button type="button" class="bodypart-chip" data-part="Legs">Legs</button>
-          <button type="button" class="bodypart-chip" data-part="Shoulders">Shoulders</button>
-          <button type="button" class="bodypart-chip" data-part="Arms">Arms</button>
-          <button type="button" class="bodypart-chip" data-part="Core">Core</button>
-          <button type="button" class="bodypart-chip" data-part="Full Body">Full Body</button>
+        <div class="bodypart-filters" id="routine-type-filters" role="tablist" aria-label="Filter workouts by type">
+          <button type="button" class="bodypart-chip active" data-rtype="all">All</button>
+          <button type="button" class="bodypart-chip" data-rtype="strength">🏋️ Strength</button>
+          <button type="button" class="bodypart-chip" data-rtype="bodyweight">🤸 Calisthenics</button>
+          <button type="button" class="bodypart-chip" data-rtype="explosive">⚡ Explosive</button>
+          <button type="button" class="bodypart-chip" data-rtype="cardio">🏃 Cardio</button>
+          <button type="button" class="bodypart-chip" data-rtype="mixed">🔀 Mixed</button>
         </div>
       </div>
 
@@ -728,7 +726,7 @@
   </div>
 
   <input type="file" id="input-import-file" accept=".json" style="display: none;" />
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').then((reg) => {

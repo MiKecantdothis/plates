@@ -1,30 +1,26 @@
 const { test, expect, startRoutine, stored } = require('./support/fixtures');
 
 test.describe('Workouts per Body Part and Dynamic Exercise Variations', () => {
-  test('routines are grouped by body part and filterable by body part chips', async ({ page }) => {
+  test('routines are grouped by type and filterable by type chips', async ({ page }) => {
     await page.goto('/');
     await page.click('#nav-btn-workouts');
 
-    // Filter bar should be visible with chips
-    await expect(page.locator('#bodypart-filters')).toBeVisible();
-    await expect(page.locator('.bodypart-chip[data-part="all"]')).toHaveClass(/\bactive\b/);
+    // Filter bar should be visible with type chips
+    await expect(page.locator('#routine-type-filters')).toBeVisible();
+    await expect(page.locator('.bodypart-chip[data-rtype="all"]')).toHaveClass(/\bactive\b/);
 
-    // Initial routines should include Chest, Back, Legs groups
-    await expect(page.locator('.bodypart-group[data-bodypart="Chest"]')).toBeVisible();
-    await expect(page.locator('.bodypart-group[data-bodypart="Back"]')).toBeVisible();
-    await expect(page.locator('.bodypart-group[data-bodypart="Legs"]')).toBeVisible();
+    // Default routines should include Strength group at minimum
+    await expect(page.locator('.bodypart-group[data-routinetype="strength"]')).toBeVisible();
 
-    // Clicking 'Chest' filter chip shows only Chest routines
-    await page.click('.bodypart-chip[data-part="Chest"]');
-    await expect(page.locator('.bodypart-chip[data-part="Chest"]')).toHaveClass(/\bactive\b/);
-    await expect(page.locator('.bodypart-group[data-bodypart="Chest"]')).toBeVisible();
-    await expect(page.locator('.bodypart-group[data-bodypart="Back"]')).toHaveCount(0);
-    await expect(page.locator('.bodypart-group[data-bodypart="Legs"]')).toHaveCount(0);
+    // Clicking 'Calisthenics' filter chip shows only calisthenics routines (or empty state)
+    await page.click('.bodypart-chip[data-rtype="bodyweight"]');
+    await expect(page.locator('.bodypart-chip[data-rtype="bodyweight"]')).toHaveClass(/\bactive\b/);
+    // Strength group should be gone
+    await expect(page.locator('.bodypart-group[data-routinetype="strength"]')).toHaveCount(0);
 
     // Clicking 'All' filter chip restores all groups
-    await page.click('.bodypart-chip[data-part="all"]');
-    await expect(page.locator('.bodypart-group[data-bodypart="Chest"]')).toBeVisible();
-    await expect(page.locator('.bodypart-group[data-bodypart="Back"]')).toBeVisible();
+    await page.click('.bodypart-chip[data-rtype="all"]');
+    await expect(page.locator('.bodypart-group[data-routinetype="strength"]')).toBeVisible();
   });
 
   test('creating a workout with individual exercise body part mappings (deadlift = back)', async ({ page }) => {

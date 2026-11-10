@@ -103,6 +103,39 @@
     return inferExerciseBodyPart(name);
   }
 
+  // Routine type inference: 'strength' | 'bodyweight' | 'explosive' | 'cardio' | 'mixed'
+  // Based on the dominant exercise mode across all exercises in the routine.
+  function inferRoutineType(routine) {
+    if (!routine) return 'strength';
+    // Check explicit tag first
+    if (routine.routineType) return routine.routineType;
+
+    const exercises = routine.exercises || [];
+    if (exercises.length === 0) return 'strength';
+
+    // Cardio keywords in name
+    const name = (routine.name || '').toLowerCase();
+    if (/run|cardio|hiit|interval|sprint|cycling|cycle|row|rowing|swim|endurance/i.test(name)) return 'cardio';
+
+    const modeCounts = { weight: 0, bodyweight: 0, distance: 0, time: 0 };
+    exercises.forEach(ex => {
+      const mode = getExerciseMode(ex, routine);
+      modeCounts[mode] = (modeCounts[mode] || 0) + 1;
+    });
+
+    const total = exercises.length;
+    const { weight, bodyweight, distance, time } = modeCounts;
+
+    // Explosive: majority are distance (jumps, throws)
+    if (distance / total >= 0.4) return 'explosive';
+    // Bodyweight / Calisthenics: majority are bodyweight or time holds
+    if ((bodyweight + time) / total >= 0.5) return 'bodyweight';
+    // Strength: majority are weighted
+    if (weight / total >= 0.5) return 'strength';
+    // Mixed: combination
+    return 'mixed';
+  }
+
   function inferBodyPart(routineName = '', exercises = []) {
     if (exercises && exercises.length > 0) {
       const counts = {};
@@ -414,7 +447,7 @@
     }
   }
 
-  let selectedBodyPartFilter = 'all';
+  let selectedRoutineTypeFilter = 'all';
 
   let history      = loadJSON('plates_history', []);
   let shoppingList = loadJSON('plates_shopping', []);
@@ -510,7 +543,7 @@
   // Routines Tab
   const routinesGrid       = $('#routines-grid');
   const btnAddRoutine      = $('#btn-add-routine');
-  const bodypartFiltersContainer = $('#bodypart-filters');
+  const routineTypeFiltersContainer = $('#routine-type-filters');
   const sessionBanner      = $('#session-banner');
   const bannerRoutineName  = $('#banner-routine-name');
   const bannerElapsed      = $('#banner-elapsed');
@@ -963,11 +996,23 @@
       ? uniqueParts.map(bp => `<span class="routine-bodypart-badge">${esc(bp)}</span>`).join('')
       : `<span class="routine-bodypart-badge">${esc(r.bodyPart || 'Full Body')}</span>`;
 
+    // Routine type badge
+    const typeLabels = {
+      strength: '🏋️ Strength',
+      bodyweight: '🤸 Calisthenics',
+      explosive: '⚡ Explosive',
+      cardio: '🏃 Cardio',
+      mixed: '🔀 Mixed',
+    };
+    const rtype = inferRoutineType(r);
+    const typeBadge = `<span class="routine-type-badge routine-type-${esc(rtype)}">${esc(typeLabels[rtype] || rtype)}</span>`;
+
     return `
       <div class="routine-card" data-id="${esc(r.id)}">
         <div class="routine-card-header">
           <div>
             <div class="routine-bodyparts-row">
+              ${typeBadge}
               ${badgesHtml}
             </div>
             <div class="routine-card-title">${esc(r.name)}</div>
@@ -1032,58 +1077,62 @@
 
     let html = '';
 
-    if (selectedBodyPartFilter === 'all') {
-      const groups = [];
-      BODY_PARTS.forEach(bp => {
-        const matches = routines.filter(r => (r.bodyPart || inferBodyPart(r.name, r.exercises)).toLowerCase() === bp.toLowerCase());
-        if (matches.length > 0) groups.push({ name: bp, items: matches });
-      });
-      // Custom body parts if any
-      const knownLower = new Set(BODY_PARTS.map(b => b.toLowerCase()));
+    // Routine type labels for group headers
+    const ROUTINE_TYPE_LABELS = {
+      strength: '🏋️ Strength',
+      bodyweight: '🤸 Calisthenics',
+      explosive: '⚡ Explosive',
+      cardio: '🏃 Cardio',
+      mixed: '🔀 Mixed',
+    };
+
+    if (selectedRoutineTypeFilter === 'all') {
+      // Group routines by their inferred type, in a defined display order
+      const typeOrder = ['strength', 'bodyweight', 'explosive', 'cardio', 'mixed'];
+      const groups = {};
+      typeOrder.forEach(t => { groups[t] = []; });
       routines.forEach(r => {
-        const bp = r.bodyPart || inferBodyPart(r.name, r.exercises);
-        if (!knownLower.has(bp.toLowerCase())) {
-          let g = groups.find(x => x.name.toLowerCase() === bp.toLowerCase());
-          if (!g) {
-            g = { name: bp, items: [] };
-            groups.push(g);
-          }
-          if (!g.items.includes(r)) g.items.push(r);
-        }
+        const rt = inferRoutineType(r);
+        if (!groups[rt]) groups[rt] = [];
+        groups[rt].push(r);
       });
 
-      html = groups.map(g => `
-        <div class="bodypart-group" data-bodypart="${esc(g.name)}">
-          <div class="bodypart-group-header">
-            <div class="bodypart-group-title">
-              <span class="bodypart-group-name">${esc(g.name)}</span>
-              <span class="bodypart-group-count">${g.items.length} workout${g.items.length !== 1 ? 's' : ''}</span>
+      html = typeOrder
+        .filter(t => groups[t].length > 0)
+        .map(t => {
+          const label = ROUTINE_TYPE_LABELS[t] || t;
+          const items = groups[t];
+          return `
+            <div class="bodypart-group" data-routinetype="${esc(t)}">
+              <div class="bodypart-group-header">
+                <div class="bodypart-group-title">
+                  <span class="bodypart-group-name">${esc(label)}</span>
+                  <span class="bodypart-group-count">${items.length} routine${items.length !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              <div class="routines-grid">
+                ${items.map(r => renderRoutineCardHtml(r)).join('')}
+              </div>
             </div>
-          </div>
-          <div class="routines-grid">
-            ${g.items.map(r => renderRoutineCardHtml(r)).join('')}
-          </div>
-        </div>
-      `).join('');
+          `;
+        }).join('');
     } else {
-      const filtered = routines.filter(r =>
-        (r.exercises || []).some(e => getExerciseBodyPart(e, r).toLowerCase() === selectedBodyPartFilter.toLowerCase()) ||
-        ((r.bodyPart || '').toLowerCase() === selectedBodyPartFilter.toLowerCase())
-      );
+      const filtered = routines.filter(r => inferRoutineType(r) === selectedRoutineTypeFilter);
+      const label = ROUTINE_TYPE_LABELS[selectedRoutineTypeFilter] || selectedRoutineTypeFilter;
       if (filtered.length === 0) {
         html = `
           <div class="empty-state" style="padding: 36px 16px;">
-            <p class="empty-state-text">No workouts targeting ${esc(selectedBodyPartFilter)} found.</p>
+            <p class="empty-state-text">No ${esc(label)} routines found.</p>
             <button type="button" class="btn-primary btn-small" id="btn-add-specific-bodypart" style="margin-top: 14px">+ Add Routine</button>
           </div>
         `;
       } else {
         html = `
-          <div class="bodypart-group" data-bodypart="${esc(selectedBodyPartFilter)}">
+          <div class="bodypart-group" data-routinetype="${esc(selectedRoutineTypeFilter)}">
             <div class="bodypart-group-header">
               <div class="bodypart-group-title">
-                <span class="bodypart-group-name">${esc(selectedBodyPartFilter)} Workouts</span>
-                <span class="bodypart-group-count">${filtered.length} workout${filtered.length !== 1 ? 's' : ''}</span>
+                <span class="bodypart-group-name">${esc(label)}</span>
+                <span class="bodypart-group-count">${filtered.length} routine${filtered.length !== 1 ? 's' : ''}</span>
               </div>
             </div>
             <div class="routines-grid">
@@ -1137,12 +1186,12 @@
     });
   }
 
-  // Wire body part filter buttons
-  if (bodypartFiltersContainer) {
-    bodypartFiltersContainer.querySelectorAll('.bodypart-chip').forEach(chip => {
+  // Wire routine type filter buttons
+  if (routineTypeFiltersContainer) {
+    routineTypeFiltersContainer.querySelectorAll('.bodypart-chip').forEach(chip => {
       chip.addEventListener('click', () => {
-        selectedBodyPartFilter = chip.dataset.part || 'all';
-        bodypartFiltersContainer.querySelectorAll('.bodypart-chip').forEach(c => {
+        selectedRoutineTypeFilter = chip.dataset.rtype || 'all';
+        routineTypeFiltersContainer.querySelectorAll('.bodypart-chip').forEach(c => {
           c.classList.toggle('active', c === chip);
         });
         renderRoutines();
@@ -1175,7 +1224,7 @@
         addExerciseInputRow(exName, exPart, exMode);
       });
     } else {
-      const defaultPart = selectedBodyPartFilter !== 'all' ? selectedBodyPartFilter : 'Chest';
+      const defaultPart = 'Chest';
       addExerciseInputRow('', defaultPart, 'weight');
       addExerciseInputRow('', defaultPart, 'weight');
     }

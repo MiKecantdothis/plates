@@ -957,6 +957,20 @@ body {
   line-height: 1.5;
 }
 
+/* ── Routine Type Badge (on cards) ── */
+.routine-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+}
+
 /* ── Body Part Filter Bar ── */
 .bodypart-filters-bar {
   overflow-x: auto;

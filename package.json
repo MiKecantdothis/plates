@@ -3,6 +3,7 @@
   "private": true,
   "description": "Plates needs no build step. This file only sets up the browser tests.",
   "scripts": {
+    "start": "node serve.js",
     "test": "playwright test"
   },
   "devDependencies": {

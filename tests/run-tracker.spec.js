@@ -79,6 +79,31 @@ test.describe('Run Tracker with Breadcrumb Trail and Goal Alerts', () => {
     await expect(page.locator('#run-active-indicator')).toBeHidden();
   });
 
+  test('finishing a run saves to history and displays in history view', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#nav-btn-run');
+    await page.click('#btn-start-run');
+
+    // Simulate run distance (~0.34 km)
+    await page.evaluate(() => {
+      window.__simulateRunStep(37.7749, -122.4194, 30);
+      window.__simulateRunStep(37.7780, -122.4194, 30);
+    });
+
+    // Click Finish Run
+    await page.click('#btn-finish-run');
+
+    // Should navigate to history view and show run
+    await expect(page.locator('#tab-history')).toHaveClass(/\bactive\b/);
+    const history = await stored(page, 'plates_history');
+    expect(history.length).toBeGreaterThan(0);
+    expect(history[0].bodyPart).toBe('Cardio');
+
+    const historyCard = page.locator('.history-card').first();
+    await expect(historyCard).toContainText('Cardio');
+    await expect(historyCard).toContainText('km');
+  });
+
   test('reaching distance goal triggers screen celebration overlay and saves to history', async ({ page }) => {
     await page.goto('/');
     await page.click('#nav-btn-run');

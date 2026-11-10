@@ -777,6 +777,9 @@
     if (mode === 'distance' || s.distance !== undefined) {
       const dist = s.distance !== undefined ? s.distance : (s.weight || 0);
       const dUnit = s.distanceUnit || distanceUnit || 'in';
+      if ((dUnit === 'km' || dUnit === 'mi') && s.seconds) {
+        return `${esc(dist)} ${esc(dUnit)} in ${formatRunTime(s.seconds)}`;
+      }
       return `${esc(dist)} ${esc(dUnit)} × ${esc(s.reps)}`;
     }
 
@@ -2421,14 +2424,16 @@
       const date = new Date(entry.date);
       const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-      const durationStr = entry.durationSeconds ? ` · ${Math.round(entry.durationSeconds / 60)} min` : '';
+      const durSec = entry.durationSeconds || 0;
+      const durationStr = durSec ? (durSec >= 60 ? ` · ${Math.round(durSec / 60)} min` : ` · ${durSec}s`) : '';
       const volume = Math.round(workoutVolume(entry));
       const volumeStr = volume ? ` · ${volume.toLocaleString()} ${weightUnit} volume` : '';
+      const runDistStr = entry.distance !== undefined ? ` · ${entry.distance} km${entry.avgPace && entry.avgPace !== "--'--\"" ? ` (${entry.avgPace}/km)` : ''}` : '';
 
       const bodyPart = entry.bodyPart || inferBodyPart(entry.routineName, (entry.exercises || []).map(e => e.name));
       return `
         <div class="history-card">
-          <div class="history-date">${esc(dateStr + ' · ' + timeStr + durationStr + volumeStr)}</div>
+          <div class="history-date">${esc(dateStr + ' · ' + timeStr + runDistStr + durationStr + volumeStr)}</div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
             <span class="routine-bodypart-badge">${esc(bodyPart)}</span>
             <div class="history-routine-name" style="margin-bottom:0;">${esc(entry.routineName)}</div>
@@ -3090,11 +3095,11 @@
 
     keepScreenOn(false);
 
-    if (save && activeRun.distanceKm > 0.05) {
+    if (save) {
       const goalName = activeRun.goal > 0 ? `${activeRun.goal}K Run` : 'Outdoor Run';
-      const durationSec = Math.round(activeRun.elapsedSeconds || 1);
-      const dist = Math.round(activeRun.distanceKm * 100) / 100;
-      const pace = formatRunPace(durationSec / dist);
+      const durationSec = Math.max(1, Math.round(activeRun.elapsedSeconds || 0));
+      const dist = Math.round((activeRun.distanceKm || 0) * 100) / 100;
+      const pace = dist > 0 ? formatRunPace(durationSec / dist) : "--'--\"";
 
       const runEntry = {
         id: 'run-' + uid(),
@@ -3129,6 +3134,7 @@
       saveJSON('plates_history', history);
       renderHistory();
       renderDashboard();
+      createAutoBackup();
       toast(`${goalName} saved! (${dist} km in ${formatRunTime(durationSec)})`);
     }
 
@@ -3213,7 +3219,10 @@
     btnPauseRun.addEventListener('click', pauseActiveRun);
   }
   if (btnFinishRun) {
-    btnFinishRun.addEventListener('click', () => finishActiveRun(true));
+    btnFinishRun.addEventListener('click', () => {
+      finishActiveRun(true);
+      switchTab('history');
+    });
   }
   if (btnDiscardRun) {
     btnDiscardRun.addEventListener('click', discardActiveRun);
@@ -3852,9 +3861,13 @@
         recentSessionsList.innerHTML = latestSessions.map(h => {
           const date = new Date(h.date);
           const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-          const durStr = h.durationSeconds ? `${Math.round(h.durationSeconds / 60)} min` : '';
+          const durSec = h.durationSeconds || 0;
+          const durStr = durSec ? (durSec >= 60 ? `${Math.round(durSec / 60)} min` : `${durSec}s`) : '';
           const vol = Math.round(workoutVolume(h));
           const volStr = vol ? `${vol.toLocaleString('en-IN')} ${weightUnit}` : '';
+          const runStr = h.distance !== undefined ? `${h.distance} km${h.avgPace && h.avgPace !== "--'--\"" ? ` (${h.avgPace}/km)` : ''}` : '';
+          const metaParts = runStr ? [runStr, durStr].filter(Boolean) : [durStr, volStr].filter(Boolean);
+          const metaStr = metaParts.join(' · ');
           const exercisesStr = h.exercises ? h.exercises.map(e => e.name).slice(0, 3).join(', ') : '';
 
           return `
@@ -3867,7 +3880,7 @@
                 <div class="recent-session-date">${dateStr}</div>
               </div>
               <div class="recent-session-meta">
-                ${durStr ? esc(durStr) : ''}${durStr && volStr ? ' · ' : ''}${volStr ? esc(volStr) : ''}
+                ${esc(metaStr)}
               </div>
               <div class="recent-session-exercises">
                 ${esc(exercisesStr)}${h.exercises && h.exercises.length > 3 ? ` +${h.exercises.length - 3} more` : ''}

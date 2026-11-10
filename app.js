@@ -2728,11 +2728,11 @@
     ctx.clearRect(0, 0, w, h);
 
     // Dark sleek background
-    ctx.fillStyle = '#080c14';
+    ctx.fillStyle = '#080808';
     ctx.fillRect(0, 0, w, h);
 
     // Subtle coordinate grid
-    ctx.strokeStyle = 'rgba(255, 102, 0, 0.08)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
     ctx.lineWidth = 1;
     const gridSize = 32;
     for (let x = 0; x < w; x += gridSize) {
@@ -2788,12 +2788,12 @@
         const [px, py] = project(pts[i]);
         ctx.lineTo(px, py);
       }
-      ctx.strokeStyle = '#ff6600';
-      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      ctx.shadowColor = 'rgba(255, 102, 0, 0.7)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.45)';
+      ctx.shadowBlur = 6;
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
@@ -2801,16 +2801,16 @@
     // Draw Start marker
     const [sx, sy] = project(pts[0]);
     ctx.beginPath();
-    ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#10b981';
+    ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = '#080c14';
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // Start text label
     ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#10b981';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.fillText('Start', sx + 8, sy - 4);
 
     // Draw Current Position with directional indicator
@@ -2819,9 +2819,9 @@
 
     ctx.beginPath();
     ctx.arc(lx, ly, 7, 0, Math.PI * 2);
-    ctx.fillStyle = '#ff6600';
-    ctx.shadowColor = 'rgba(255, 102, 0, 0.95)';
-    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+    ctx.shadowBlur = 10;
     ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -2842,7 +2842,7 @@
       ctx.lineTo(lx, ly);
       ctx.lineTo(lx + Math.cos(rad - 2.5) * 6, ly + Math.sin(rad - 2.5) * 6);
       ctx.closePath();
-      ctx.fillStyle = '#ff6600';
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
 
       if (runDirectionBadge) {
@@ -3365,19 +3365,19 @@
   function getChartTheme() {
     const isLight = currentTheme === 'light';
     return {
-      textColor: isLight ? '#475569' : '#94a3b8',
+      textColor: isLight ? '#64748b' : '#94a3b8',
       gridColor: isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)',
       borderColor: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
-      tooltipBg: isLight ? '#ffffff' : '#111828',
+      tooltipBg: isLight ? '#ffffff' : '#0d131f',
       tooltipText: isLight ? '#0f172a' : '#f8fafc',
-      tooltipBorder: isLight ? 'rgba(234, 88, 12, 0.4)' : 'rgba(255, 102, 0, 0.45)',
-      accentLine: isLight ? '#ea580c' : '#ff6600',
-      gradientStart: isLight ? 'rgba(234, 88, 12, 0.32)' : 'rgba(255, 102, 0, 0.40)',
-      gradientStop: isLight ? 'rgba(234, 88, 12, 0.0)' : 'rgba(255, 102, 0, 0.0)',
+      tooltipBorder: isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(0, 212, 255, 0.35)',
+      accentLine: isLight ? '#0066ff' : '#00d4ff',
+      gradientStart: isLight ? 'rgba(0, 102, 255, 0.30)' : 'rgba(0, 212, 255, 0.35)',
+      gradientStop: isLight ? 'rgba(0, 102, 255, 0.0)' : 'rgba(0, 212, 255, 0.0)',
       donutColors: isLight
-        ? ['#ea580c', '#1d4ed8', '#059669', '#0891b2', '#7c3aed', '#dc2626', '#2563eb']
-        : ['#ff6600', '#1a4ce0', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#3b82f6'],
-      donutBorder: isLight ? '#ffffff' : '#111828',
+        ? ['#0066ff', '#00b4d8', '#7928ca', '#f72585', '#4361ee', '#ff9f1c', '#2ec4b6']
+        : ['#00d4ff', '#0070f3', '#7928ca', '#ff007a', '#00e5a3', '#ffbe0b', '#8338ec'],
+      donutBorder: isLight ? '#ffffff' : '#0d131f',
     };
   }
 
